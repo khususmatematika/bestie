@@ -1,0 +1,199 @@
+@import 'tailwindcss';
+
+@source '../views';
+@source '../js';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------
+   Design token (PRD §8). Jangan memakai hex acak di komponen —
+   gunakan token ini lewat kelas Tailwind (bg-primary-600, text-ink, dst).
+------------------------------------------------------------------- */
+@theme {
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Source Serif 4', ui-serif, Georgia, serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-200: #c7d2fe;
+    --color-primary-300: #a5b4fc;
+    --color-primary-400: #748ffc;
+    --color-primary-500: #5c7cfa;
+    --color-primary-600: #3b5bdb;
+    --color-primary-700: #2f4ac0;
+    --color-primary-800: #1e3a8a;
+    --color-primary-900: #172c6b;
+
+    --color-accent-50: #e6f7f4;
+    --color-accent-100: #c2ece5;
+    --color-accent-500: #0f9d8a;
+    --color-accent-600: #0c8574;
+    --color-accent-700: #0a6b5e;
+
+    --color-success-50: #ecfdf5;
+    --color-success-500: #10b981;
+    --color-success-700: #047857;
+
+    --color-warning-50: #fffbeb;
+    --color-warning-500: #f59e0b;
+    --color-warning-700: #b45309;
+
+    --color-danger-50: #fff1f2;
+    --color-danger-500: #e11d48;
+    --color-danger-600: #be123c;
+    --color-danger-700: #9f1239;
+
+    /* Token semantik yang berganti saat mode gelap */
+    --color-canvas: var(--c-canvas);
+    --color-surface: var(--c-surface);
+    --color-surface-2: var(--c-surface-2);
+    --color-line: var(--c-line);
+    --color-ink: var(--c-ink);
+    --color-ink-soft: var(--c-ink-soft);
+    --color-ink-faint: var(--c-ink-faint);
+
+    --radius-card: 1rem;
+    --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.06);
+    --shadow-pop: 0 10px 40px rgb(15 23 42 / 0.18);
+}
+
+:root {
+    --c-canvas: #f6f8fc;
+    --c-surface: #ffffff;
+    --c-surface-2: #f1f4fb;
+    --c-line: #e2e8f4;
+    --c-ink: #0f172a;
+    --c-ink-soft: #475569;
+    --c-ink-faint: #64748b;
+    color-scheme: light;
+}
+
+.dark {
+    --c-canvas: #0b1220;
+    --c-surface: #111a2e;
+    --c-surface-2: #17223b;
+    --c-line: #24324f;
+    --c-ink: #e8edf7;
+    --c-ink-soft: #b4c0d8;
+    --c-ink-faint: #8a99b8;
+    color-scheme: dark;
+}
+
+html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    background: var(--c-canvas);
+    color: var(--c-ink);
+}
+
+:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ------------------------------------------------------------------
+   Komponen dasar
+------------------------------------------------------------------- */
+/* Tailwind v4: kelas yang dipakai lewat @apply harus didefinisikan dengan @utility. */
+@utility btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition
+        duration-150 disabled:pointer-events-none disabled:opacity-50;
+}
+
+@layer components {
+    .card {
+        @apply rounded-card border border-line bg-surface shadow-soft;
+    }
+
+    .btn-primary {
+        @apply btn bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800;
+    }
+    .btn-secondary {
+        @apply btn border border-line bg-surface text-ink hover:bg-surface-2;
+    }
+    .btn-ghost {
+        @apply btn text-ink-soft hover:bg-surface-2 hover:text-ink;
+    }
+    .btn-danger {
+        @apply btn bg-danger-600 text-white hover:bg-danger-700;
+    }
+    .btn-sm {
+        @apply rounded-lg! px-3! py-1.5! text-xs!;
+    }
+    .btn-icon {
+        @apply inline-flex size-8 items-center justify-center rounded-lg text-ink-soft transition hover:bg-surface-2
+            hover:text-ink disabled:opacity-50;
+    }
+
+    .label {
+        @apply mb-1.5 block text-sm font-medium text-ink;
+    }
+    .input {
+        @apply block w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink
+            placeholder:text-ink-faint transition focus:border-primary-500 focus:outline-none focus:ring-4
+            focus:ring-primary-500/15 disabled:bg-surface-2;
+    }
+    .input-error {
+        @apply border-danger-500 focus:border-danger-500 focus:ring-danger-500/15;
+    }
+    .hint {
+        @apply mt-1 text-xs text-ink-faint;
+    }
+    .error-text {
+        @apply mt-1.5 text-xs font-medium text-danger-600 dark:text-danger-500;
+    }
+
+    .table-wrap {
+        @apply overflow-x-auto;
+    }
+    .table {
+        @apply w-full min-w-[640px] text-left text-sm;
+    }
+    .table thead th {
+        @apply whitespace-nowrap border-b border-line bg-surface-2 px-4 py-3 text-xs font-semibold uppercase
+            tracking-wide text-ink-faint;
+    }
+    .table tbody td {
+        @apply border-b border-line px-4 py-3 align-middle text-ink;
+    }
+    .table tbody tr:last-child td {
+        @apply border-b-0;
+    }
+    .table tbody tr:hover {
+        @apply bg-surface-2/60;
+    }
+
+    .badge {
+        @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold;
+    }
+}
+
+@keyframes skeleton {
+    0% {
+        background-position: 100% 0;
+    }
+    100% {
+        background-position: -100% 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, var(--c-surface-2) 25%, var(--c-line) 37%, var(--c-surface-2) 63%);
+    background-size: 200% 100%;
+    animation: skeleton 1.4s ease infinite;
+    border-radius: 0.5rem;
+}
