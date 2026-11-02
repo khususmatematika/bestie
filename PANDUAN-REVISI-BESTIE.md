@@ -161,3 +161,8 @@ Lihat **PANDUAN-KEAMANAN.md** (daftar periksa `.env` produksi + ringkasan perlin
 
 ## Perbaikan tes (21 gagal → akun admin di tes ikut keluar)
 Pengecekan akun nonaktif terlalu ketat: pengguna buatan tes yang atribut `is_active`-nya belum terisi dianggap nonaktif. Kini hanya `is_active === false` (nilai eksplisit) yang dikeluarkan. **[TERMINAL]** `php artisan test`.
+
+---
+
+## Mapel awal kosong
+`php artisan db:seed` kini hanya membuat peran dan tingkat X/XI/XII (`GradeLevelSeeder`). Mapel diisi admin lewat menu **Mapel** atau **Impor Mapel**. `ReferenceSeeder` (14 mapel contoh) tetap ada untuk tes, tidak dipanggil `db:seed`.

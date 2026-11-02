@@ -15,16 +15,7 @@ class ReferenceSeeder extends Seeder
 {
     public function run(): void
     {
-        $grades = [
-            // phase = fase mapel umum; phase_elective = fase mapel pilihan
-            ['name' => 'X', 'phase' => 'Fase E', 'phase_elective' => 'Fase E', 'sort_order' => 1],
-            ['name' => 'XI', 'phase' => 'Fase F', 'phase_elective' => 'Fase F+', 'sort_order' => 2],
-            ['name' => 'XII', 'phase' => 'Fase F', 'phase_elective' => 'Fase F+', 'sort_order' => 3],
-        ];
-
-        foreach ($grades as $grade) {
-            GradeLevel::query()->updateOrCreate(['name' => $grade['name']], $grade);
-        }
+        $this->call(GradeLevelSeeder::class);
 
         $subjects = [
             ['code' => 'PAI', 'name' => 'Pendidikan Agama dan Budi Pekerti', 'category' => 'umum'],

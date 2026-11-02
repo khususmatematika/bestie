@@ -84,7 +84,7 @@ php artisan migrate
 php artisan db:seed
 php artisan bestie:create-admin
 ```
-`db:seed` membuat peran, tingkat X/XI/XII, dan 14 mapel bawaan. `bestie:create-admin` menanyakan
+`db:seed` membuat peran dan tingkat X/XI/XII. **Mapel dibiarkan kosong** — isi lewat menu Mapel atau Impor Mapel. `bestie:create-admin` menanyakan
 **email, nama, dan kata sandi** secara interaktif (kata sandi tidak tampil saat diketik dan tidak disimpan di `.env`).
 Lupa sandi admin? Jalankan `php artisan bestie:create-admin --reset`.
 
