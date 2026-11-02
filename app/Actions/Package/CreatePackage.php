@@ -87,7 +87,7 @@ final class CreatePackage
         });
 
         if ($kisiKisi !== null || $naskah !== null) {
-            ExtractPackageItemsJob::dispatch($package->id);
+            \App\Support\RunJob::dispatch(new ExtractPackageItemsJob($package->id));
         }
 
         ActivityLogger::log('package.created', $package, ['title' => $package->title], $teacher);

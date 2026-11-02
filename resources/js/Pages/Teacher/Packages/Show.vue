@@ -280,7 +280,7 @@ function sizeLabel(bytes: number): string {
                 <h2 class="text-base font-bold text-ink">Kirim ke validator</h2>
                 <p v-if="!items.length" class="mt-2 text-sm text-ink-soft">Tambahkan nomor soal terlebih dahulu.</p>
                 <p v-else-if="incomplete.length" class="mt-2 flex items-start gap-2 text-sm text-warning-700 dark:text-warning-500">
-                    <TriangleAlert class="mt-0.5 size-4 shrink-0" /> {{ incomplete.length }} nomor belum lengkap (indikator, kunci, bobot, teks soal). Lengkapi dahulu.
+                    <TriangleAlert class="mt-0.5 size-4 shrink-0" /> {{ incomplete.length }} nomor belum lengkap (teks soal, indikator soal, kunci jawaban, pilihan). Lengkapi dahulu.
                 </p>
                 <form v-else class="mt-3 space-y-4" @submit.prevent="submitPackage">
                     <FormField v-slot="{ id, invalid }" label="Pilih validator" :error="submitForm.errors.validator_id" required>
@@ -325,7 +325,7 @@ function sizeLabel(bytes: number): string {
                 <form v-if="pkg.can_edit" class="mt-4 space-y-3 border-t border-line pt-4" @submit.prevent="submitFiles">
                     <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Unggah / ganti berkas</p>
                     <div>
-                        <label class="label" for="f-kisi">Kisi-kisi (.xlsx/.csv)</label>
+                        <label class="label" for="f-kisi">Kisi-kisi (.docx atau .xlsx)</label>
                         <input id="f-kisi" type="file" accept=".xlsx,.docx,.pdf" class="text-sm" @change="filesForm.kisi_kisi = ($event.target as HTMLInputElement).files?.[0] ?? null" />
                         <p v-if="filesForm.errors.kisi_kisi" class="error-text" role="alert">{{ filesForm.errors.kisi_kisi }}</p>
                     </div>

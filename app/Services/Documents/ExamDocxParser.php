@@ -6,6 +6,7 @@ namespace App\Services\Documents;
 
 use App\Enums\QuestionType;
 use App\Support\ItemContent;
+use App\Support\MatchingKey;
 
 /**
  * Mengurai naskah soal yang disusun di Word dengan penomoran otomatis (format yang dipakai guru):
@@ -39,10 +40,11 @@ final class ExamDocxParser
         $lettered = 0;
 
         foreach ($blocks as $block) {
-            if ($block['list'] === null || $block['list']['level'] !== 0) {
+            if ($block['list'] === null) {
                 continue;
             }
 
+            // Nomor soal boleh berada pada tingkat daftar berapa pun (naskah hasil salin-tempel sering memakai tingkat 2/6).
             if ($block['list']['fmt'] === 'decimal') {
                 $numbered++;
             } elseif (in_array($block['list']['fmt'], ['upperLetter', 'lowerLetter'], true)) {
@@ -80,13 +82,14 @@ final class ExamDocxParser
             }
 
             // Stem: paragraf berdaftar angka tingkat 0.
-            if ($list !== null && $list['level'] === 0 && $list['fmt'] === 'decimal') {
+            if ($list !== null && $list['fmt'] === 'decimal' && $this->startsQuestion($list, $current)) {
                 if ($current !== null) {
                     $questions[] = $current;
                 }
 
                 $number++;
                 $current = $this->newQuestion($number, $section, $block, $pendingImages);
+                $current['list_key'] = $list['num_id'].'/'.$list['level'];
                 $pendingImages = [];
                 $lastOptionList = null;
 
@@ -102,6 +105,13 @@ final class ExamDocxParser
             if ($current === null) {
                 // Judul dokumen atau gambar sebelum butir pertama.
                 $pendingImages = [...$pendingImages, ...$block['images']];
+
+                continue;
+            }
+
+            // Menjodohkan: baris "Pengecoh: a; b" = pilihan jawaban tambahan yang tidak dipakai pernyataan mana pun.
+            if ($current['type'] === QuestionType::Menjodohkan && preg_match('/^\s*(?:pilihan\s+)?pengecoh\s*[:：]\s*(.+)$/iu', $text, $dm) === 1) {
+                $current['distractors'] = [...$current['distractors'], ...array_values(array_filter(array_map('trim', explode(';', $dm[1])), static fn (string $d): bool => $d !== ''))];
 
                 continue;
             }
@@ -123,6 +133,7 @@ final class ExamDocxParser
 
                 $letter = ItemContent::OPTION_LETTERS[$index];
                 $current['options'][$letter] = $text;
+                $current['option_blocks'][$letter] = $block;
                 $current['red'][$letter] = $this->hasRed($block);
                 $current['images'] = [...$current['images'], ...$block['images']];
 
@@ -176,6 +187,23 @@ final class ExamDocxParser
         return ['items' => $items, 'warnings' => $warnings];
     }
 
+
+    /**
+     * Daftar bernomor desimal dianggap nomor soal bila: tingkat 0; atau belum ada soal; atau soal sebelumnya sudah punya
+     * pilihan (nomor baru muncul setelah pilihan); atau daftar yang sama dengan nomor soal sebelumnya (soal tanpa pilihan).
+     * Daftar angka bersarang di dalam stimulus (belum ada pilihan, daftar berbeda) tetap menjadi teks soal.
+     *
+     * @param  array{num_id: int, level: int, fmt: string}  $list
+     * @param  array<string, mixed>|null  $current
+     */
+    private function startsQuestion(array $list, ?array $current): bool
+    {
+        return $list['level'] === 0
+            || $current === null
+            || $current['options'] !== []
+            || ($current['list_key'] ?? null) === $list['num_id'].'/'.$list['level'];
+    }
+
     /**
      * @param  array<string, mixed>  $block
      * @param  list<string>  $pendingImages
@@ -190,6 +218,8 @@ final class ExamDocxParser
             'stem_blocks' => [$block],
             'options' => [],
             'red' => [],
+            'option_blocks' => [],
+            'distractors' => [],
             'letters' => 0,
             'images' => [...$pendingImages, ...$block['images']],
         ];
@@ -233,6 +263,28 @@ final class ExamDocxParser
                 break;
 
             case QuestionType::BenarSalah:
+                if ($options !== []) {
+                    // Beberapa pernyataan (A, B, C, …) dengan "(B/S)" di tiap baris: kunci "A=B; B=S; C=B".
+                    $pairs = [];
+
+                    foreach ($options as $letter => $text) {
+                        $answer = $this->trueFalseFromBlocks([$q['option_blocks'][$letter] ?? ['runs' => []]]);
+                        $options[$letter] = trim(preg_replace('/\s*\(\s*B\s*\/\s*S\s*\)\s*\.?\s*$/u', '', $text) ?? $text);
+
+                        if ($answer === '') {
+                            $warnings[] = "Nomor {$number}: pernyataan {$letter} belum ditandai (warnai huruf B atau S pada \"(B/S)\" dengan merah).";
+
+                            continue;
+                        }
+
+                        $pairs[] = $letter.'='.$answer;
+                    }
+
+                    $key = implode('; ', $pairs);
+
+                    break;
+                }
+
                 [$stem, $key] = $this->trueFalse($q, $stem);
 
                 if ($key === '') {
@@ -249,11 +301,11 @@ final class ExamDocxParser
                 foreach ($options as $letter => $text) {
                     if (preg_match('/^(.*?)\s*\(([^()]+)\)\s*$/us', $text, $m) === 1) {
                         $options[$letter] = trim($m[1]);
-                        $pairs[] = $letter.'='.trim($m[2]);
+                        $pairs[$letter] = trim($m[2]);
                     }
                 }
 
-                $key = implode('; ', $pairs);
+                $key = MatchingKey::build($pairs, $q['distractors']);
 
                 if ($pairs === []) {
                     $warnings[] = "Nomor {$number}: pasangan jawaban menjodohkan tidak terbaca (tulis nilainya dalam tanda kurung di akhir tiap pernyataan).";
@@ -282,10 +334,22 @@ final class ExamDocxParser
      */
     private function trueFalse(array $q, string $stem): array
     {
+        $key = $this->trueFalseFromBlocks($q['stem_blocks']);
+        $clean = preg_replace('/\s*\(\s*B\s*\/\s*S\s*\)\s*\.?\s*$/u', '', $stem) ?? $stem;
+
+        return [trim($clean), $key];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $blocks
+     * @return string  'B', 'S', atau '' bila tidak ada huruf merah pada "(B/S)"
+     */
+    private function trueFalseFromBlocks(array $blocks): string
+    {
         $key = '';
 
-        foreach ($q['stem_blocks'] as $block) {
-            $runs = $block['runs'];
+        foreach ($blocks as $block) {
+            $runs = $block['runs'] ?? [];
             $count = count($runs);
 
             for ($i = 0; $i < $count; $i++) {
@@ -308,9 +372,7 @@ final class ExamDocxParser
             }
         }
 
-        $clean = preg_replace('/\s*\(\s*B\s*\/\s*S\s*\)\s*\.?\s*$/u', '', $stem) ?? $stem;
-
-        return [trim($clean), $key];
+        return $key;
     }
 
     /**

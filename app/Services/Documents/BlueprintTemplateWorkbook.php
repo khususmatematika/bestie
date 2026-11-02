@@ -20,16 +20,16 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 final class BlueprintTemplateWorkbook
 {
-    private const HEADINGS = ['No.', 'Capaian Pembelajaran', 'Materi', 'Submateri', 'Indikator Soal', 'No. Soal', 'Level Kognitif', 'Bentuk Soal'];
+    public const HEADINGS = ['No.', 'Capaian Pembelajaran', 'Materi', 'Submateri', 'Indikator Soal', 'No. Soal', 'Level Kognitif', 'Bentuk Soal'];
 
     /** Baris contoh: [CP, materi, submateri, indikator, no soal, level, bentuk]. CP/materi/submateri kosong = sel digabung dengan baris di atasnya. */
-    private const SAMPLE = [
+    public const SAMPLE = [
         ['Peserta didik mampu melakukan operasi hitung bilangan', 'Bilangan', 'Pecahan', 'Disajikan operasi pecahan, peserta didik dapat menentukan hasil penjumlahannya', 1, 'C2', 'PG'],
         ['', '', '', 'Disajikan kutipan, peserta didik dapat menentukan pesan utama', 2, 'C4', 'PG'],
         ['', '', 'Bilangan prima', 'Disajikan beberapa pernyataan, peserta didik dapat memilih dua pernyataan yang benar tentang bilangan prima', 3, 'C4', 'PGK'],
         ['', '', '', 'Disajikan pernyataan, peserta didik dapat menentukan benar atau salahnya', 4, 'C1', 'BS'],
         ['', '', '', 'Disajikan pernyataan, peserta didik dapat menentukan benar atau salahnya', 5, 'C2', 'BS'],
-        ['', 'Bilangan berpangkat', 'Akar kuadrat', 'Disajikan akar kuadrat, peserta didik dapat menjodohkan dengan hasilnya', 6, 'C2', 'MJD'],
+        ['', 'Wawasan kebangsaan', 'Ibu kota provinsi', 'Disajikan nama ibu kota, peserta didik dapat menjodohkan dengan provinsinya (5 pernyataan, 7 pilihan jawaban)', 6, 'C2', 'MJD'],
         ['', '', 'Perkalian', 'Disajikan perkalian dua bilangan, peserta didik dapat menentukan hasilnya', 7, 'C1', 'IS'],
         ['Peserta didik mampu bernalar dan menyampaikan pendapat', 'Literasi', 'Manfaat membaca', 'Disajikan permasalahan, peserta didik dapat menjelaskan manfaat membaca disertai alasan', 8, 'C5', 'Uraian'],
     ];
@@ -52,6 +52,11 @@ final class BlueprintTemplateWorkbook
         $head->getFont()->setBold(true)->setColor(new Color('FFFFFFFF'));
         $head->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('1E3A8A');
         $head->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        // Kolom WAJIB (Indikator Soal, No. Soal, Bentuk Soal) diberi warna oranye; kolom lain opsional.
+        foreach (['E1', 'F1', 'H1'] as $cell) {
+            $sheet->getStyle($cell)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('C2410C');
+        }
+
         $sheet->getRowDimension(1)->setRowHeight(30);
         $sheet->freezePane('A2');
 
@@ -107,17 +112,18 @@ final class BlueprintTemplateWorkbook
 
         $lines = [
             ['PETUNJUK PENGISIAN KISI-KISI', null, 'title'],
+            ['WAJIB diisi: Indikator Soal, No. Soal, dan Bentuk Soal (judul kolomnya berwarna oranye). Kolom lain bersifat opsional.', null, 'note'],
             ['Isi lembar "Kisi-kisi" mulai baris 2. Baris contoh (nomor 1–8) boleh dihapus. Jangan mengubah judul kolom di baris 1.', null, 'note'],
             [null, null, 'gap'],
             ['Kolom', 'Cara mengisi', 'head'],
-            ['No.', 'Nomor urut baris (opsional, tidak dipakai untuk mencocokkan).', null],
-            ['Capaian Pembelajaran', 'Tulis CP/KD. Boleh menggabungkan sel (merge) ke bawah; baris di bawahnya otomatis mewarisi nilai ini.', null],
-            ['Materi', 'Materi pokok. Boleh sel digabung; diwarisi seperti CP.', null],
-            ['Submateri', 'Submateri (opsional). Boleh sel digabung.', null],
-            ['Indikator Soal', 'Satu indikator per nomor soal. Rumuskan: "Disajikan …, peserta didik dapat …".', null],
-            ['No. Soal', 'NOMOR SOAL pada naskah. Kolom inilah yang dicocokkan dengan nomor di naskah (angka saja, tanpa titik).', null],
-            ['Level Kognitif', 'C1 Pengetahuan · C2 Pemahaman · C3 Aplikasi · C4 Analisis · C5 Evaluasi · C6 Kreasi.', null],
-            ['Bentuk Soal', 'PG = Pilihan Ganda · PGK = Pilihan Ganda Kompleks · BS = Benar/Salah · MJD = Menjodohkan · IS = Isian Singkat · Uraian.', null],
+            ['No.', 'OPSIONAL. Nomor urut baris (tidak dipakai untuk mencocokkan).', null],
+            ['Capaian Pembelajaran', 'OPSIONAL. Tulis CP/KD. Boleh menggabungkan sel (merge) ke bawah; baris di bawahnya otomatis mewarisi nilai ini.', null],
+            ['Materi', 'OPSIONAL. Materi pokok. Boleh sel digabung; diwarisi seperti CP.', null],
+            ['Submateri', 'OPSIONAL. Submateri. Boleh sel digabung.', null],
+            ['Indikator Soal', 'WAJIB. Satu indikator per nomor soal. Rumuskan: "Disajikan …, peserta didik dapat …".', null],
+            ['No. Soal', 'WAJIB. NOMOR SOAL pada naskah. Kolom inilah yang dicocokkan dengan nomor di naskah (angka saja, tanpa titik).', null],
+            ['Level Kognitif', 'OPSIONAL. C1 Pengetahuan · C2 Pemahaman · C3 Aplikasi · C4 Analisis · C5 Evaluasi · C6 Kreasi.', null],
+            ['Bentuk Soal', 'WAJIB. PG = Pilihan Ganda · PGK = Pilihan Ganda Kompleks · BS = Benar/Salah · MJD = Menjodohkan · IS = Isian Singkat · Uraian.', null],
             [null, null, 'gap'],
             ['Tips', null, 'head'],
             ['Sesuaikan dengan naskah', 'Jumlah baris, nomor, dan bentuk soal harus sama dengan naskah. Bila berbeda, BESTIE menampilkan peringatan sebelum paket dikirim.', null],

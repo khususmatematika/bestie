@@ -65,6 +65,7 @@ class GuideAndTemplatesTest extends TestCase
         $this->assertSame('C', $read['items'][1]['answer_key']);
         $this->assertSame('B,D', $read['items'][3]['answer_key']);
         $this->assertSame('B', $read['items'][4]['answer_key']);
+        $this->assertSame("A=Jawa Timur; B=Jawa Barat; C=Jawa Tengah; D=Bali; E=Nusa Tenggara Barat\nPengecoh: Sulawesi Selatan; Kalimantan Timur", $read['items'][6]['answer_key']);
         $this->assertSame('S', $read['items'][5]['answer_key']);
 
         @unlink($path);
@@ -84,6 +85,24 @@ class GuideAndTemplatesTest extends TestCase
         // Sel digabung diwariskan ke baris di bawahnya.
         $this->assertSame($parsed['rows'][1]['blueprint']['cp'], $parsed['rows'][7]['blueprint']['cp']);
         $this->assertNotSame($parsed['rows'][1]['blueprint']['cp'], $parsed['rows'][8]['blueprint']['cp']);
+
+        @unlink($path);
+    }
+
+    public function test_word_blueprint_template_is_read_back(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'kw').'.docx';
+        app(\App\Services\Documents\BlueprintTemplateDocument::class)->build($path);
+
+        $rows = \App\Services\Documents\DocumentRows::fromTables((new \App\Services\Documents\DocxTextReader)->read($path)['tables']);
+        $parsed = app(BlueprintRowsParser::class)->parse($rows);
+
+        $this->assertSame([], $parsed['warnings']);
+        $this->assertSame(range(1, 8), array_keys($parsed['rows']));
+        $this->assertSame('menjodohkan', $parsed['rows'][6]['type']);
+
+        $user = $this->userWith(RoleName::Teacher);
+        $this->actingAs($user)->get('/templates/kisi-kisi-word')->assertOk();
 
         @unlink($path);
     }

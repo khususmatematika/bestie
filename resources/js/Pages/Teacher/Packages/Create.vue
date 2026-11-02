@@ -81,7 +81,7 @@ function submit(): void {
 
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
-                        <p class="label">Kisi-kisi <span class="font-normal text-ink-faint">(.xlsx / .csv)</span></p>
+                        <p class="label">Kisi-kisi <span class="font-normal text-ink-faint">(.docx atau .xlsx)</span></p>
                         <label class="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-line px-4 py-6 text-center hover:bg-surface-2">
                             <FileSpreadsheet class="size-6 text-primary-600" />
                             <span class="mt-2 text-sm font-semibold text-ink">{{ form.kisi_kisi?.name ?? 'Pilih berkas kisi-kisi' }}</span>
@@ -113,6 +113,7 @@ function submit(): void {
             <h2 class="text-base font-bold text-ink">Template standar</h2>
             <p class="mt-1 text-sm text-ink-soft">Ekstraksi per nomor paling akurat memakai template berikut.</p>
             <div class="mt-4 flex flex-col gap-2">
+                <a href="/templates/kisi-kisi-word" class="btn-secondary justify-start"><Download class="size-4" /> Template kisi-kisi (.docx)</a>
                 <a href="/templates/kisi-kisi" class="btn-secondary justify-start"><Download class="size-4" /> Template kisi-kisi (.xlsx)</a>
                 <a href="/templates/naskah" class="btn-secondary justify-start"><Download class="size-4" /> Template naskah soal (.docx)</a>
             </div>

@@ -70,7 +70,7 @@ const rules = [
     { t: 'Pilihan jawaban', d: 'Daftar huruf otomatis A–E, mulai ulang dari A pada tiap soal. Maksimal 5 pilihan.' },
     { t: 'Kunci jawaban', d: 'Beri warna font MERAH pada pilihan yang benar. Pilihan ganda kompleks: beberapa pilihan merah.' },
     { t: 'Benar/Salah', d: 'Akhiri pernyataan dengan "(B/S)" dan warnai huruf yang benar (B atau S) merah.' },
-    { t: 'Menjodohkan', d: 'Tulis nilai pasangan di dalam tanda kurung merah di akhir tiap pernyataan, mis. "Akar dari 16 (4)".' },
+    { t: 'Menjodohkan', d: 'Tulis jawaban benar di dalam tanda kurung merah di akhir tiap pernyataan, mis. "Surabaya (Jawa Timur)". Lalu satu baris "Pengecoh: Sulawesi Selatan; Kalimantan Timur" (pisahkan dengan titik koma). Pilihan jawaban harus lebih banyak daripada pernyataan: 5 pernyataan = minimal 6 pilihan.' },
     { t: 'Isian & uraian', d: 'Kunci/pedoman penskoran tidak dibaca dari naskah; isi di BESTIE pada halaman soal.' },
     { t: 'Rumus & gambar', d: 'Rumus: Insert → Equation. Gambar: tempel di bawah teks soal. Keduanya tampil pada telaah dan naskah final.' },
     { t: 'Stimulus', d: 'Paragraf tanpa nomor di antara soal dan pilihan dianggap bagian soal (bacaan, tabel, kutipan).' },
@@ -95,12 +95,20 @@ const faqs = [
     </PageHeader>
 
     <!-- Template -->
-    <section v-if="active === 'teacher'" class="card mb-6 grid gap-4 p-5 sm:grid-cols-2">
+    <section v-if="active === 'teacher'" class="card mb-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
         <a href="/templates/naskah" class="group flex items-center gap-4 rounded-xl border border-line p-4 transition hover:border-primary-400 hover:bg-surface-2">
             <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"><FileText class="size-6" /></span>
             <span class="min-w-0">
                 <span class="block font-bold text-ink">Template naskah soal (.docx)</span>
                 <span class="block text-xs text-ink-soft">Contoh enam bentuk soal, penomoran otomatis, kunci merah, rumus.</span>
+            </span>
+            <Download class="ml-auto size-4 shrink-0 text-ink-faint group-hover:text-primary-600" />
+        </a>
+        <a href="/templates/kisi-kisi-word" class="group flex items-center gap-4 rounded-xl border border-line p-4 transition hover:border-primary-400 hover:bg-surface-2">
+            <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-100"><FileText class="size-6" /></span>
+            <span class="min-w-0">
+                <span class="block font-bold text-ink">Template kisi-kisi (.docx)</span>
+                <span class="block text-xs text-ink-soft">Tabel Word berjudul kolom standar, kolom wajib berwarna oranye, contoh nomor 1–8.</span>
             </span>
             <Download class="ml-auto size-4 shrink-0 text-ink-faint group-hover:text-primary-600" />
         </a>
@@ -181,17 +189,17 @@ const faqs = [
         <h2 class="text-base font-bold text-ink">Menulis kisi-kisi</h2>
         <div class="table-wrap mt-4">
             <table class="table">
-                <thead><tr><th>Kolom</th><th>Isi</th></tr></thead>
+                <thead><tr><th>Kolom</th><th>Status</th><th>Isi</th></tr></thead>
                 <tbody>
-                    <tr><td class="font-semibold">Capaian Pembelajaran, Materi, Submateri</td><td>Boleh sel digabung; baris di bawahnya otomatis mewarisi nilainya.</td></tr>
-                    <tr><td class="font-semibold">Indikator Soal</td><td>Satu indikator per nomor: "Disajikan …, peserta didik dapat …".</td></tr>
-                    <tr><td class="font-semibold">No. Soal</td><td>Angka nomor pada naskah. Inilah yang dicocokkan dengan naskah.</td></tr>
-                    <tr><td class="font-semibold">Level Kognitif</td><td>C1 Pengetahuan, C2 Pemahaman, C3 Aplikasi, C4 Analisis, C5 Evaluasi, C6 Kreasi.</td></tr>
-                    <tr><td class="font-semibold">Bentuk Soal</td><td>PG, PGK (pilihan ganda kompleks), BS (benar/salah), MJD (menjodohkan), IS (isian singkat), Uraian.</td></tr>
+                    <tr><td class="font-semibold">Capaian Pembelajaran, Materi, Submateri</td><td class="text-ink-faint">Opsional</td><td>Boleh sel digabung; baris di bawahnya otomatis mewarisi nilainya.</td></tr>
+                    <tr><td class="font-semibold">Indikator Soal</td><td class="font-bold text-danger-600">WAJIB</td><td>Satu indikator per nomor: "Disajikan …, peserta didik dapat …".</td></tr>
+                    <tr><td class="font-semibold">No. Soal</td><td class="font-bold text-danger-600">WAJIB</td><td>Angka nomor pada naskah. Inilah yang dicocokkan dengan naskah.</td></tr>
+                    <tr><td class="font-semibold">Level Kognitif</td><td class="text-ink-faint">Opsional</td><td>C1 Pengetahuan, C2 Pemahaman, C3 Aplikasi, C4 Analisis, C5 Evaluasi, C6 Kreasi.</td></tr>
+                    <tr><td class="font-semibold">Bentuk Soal</td><td class="font-bold text-danger-600">WAJIB</td><td>PG, PGK (pilihan ganda kompleks), BS (benar/salah), MJD (menjodohkan), IS (isian singkat), Uraian.</td></tr>
                 </tbody>
             </table>
         </div>
-        <p class="mt-3 text-xs text-ink-faint">Kisi-kisi dapat diunggah sebagai Excel, Word, atau PDF berteks; Excel paling akurat.</p>
+        <p class="mt-3 text-xs text-ink-faint">Yang wajib hanya Indikator Soal, No. Soal, dan Bentuk Soal; kolom lain boleh dikosongkan. Kisi-kisi dapat diunggah sebagai Excel, Word, atau PDF berteks; Excel paling akurat.</p>
     </section>
 
     <!-- FAQ -->

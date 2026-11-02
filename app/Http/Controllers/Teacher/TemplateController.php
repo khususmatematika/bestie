@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Services\Documents\BlueprintTemplateDocument;
 use App\Services\Documents\BlueprintTemplateWorkbook;
 use App\Services\Documents\NaskahTemplateDocument;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
- * Unduhan template standar (kisi-kisi .xlsx dan naskah soal .docx). Dapat diakses semua peran yang sudah masuk.
+ * Unduhan template standar (kisi-kisi .xlsx/.docx dan naskah soal .docx). Dapat diakses semua peran yang sudah masuk.
  */
 class TemplateController extends Controller
 {
@@ -20,6 +21,16 @@ class TemplateController extends Controller
         $workbook->build($path);
 
         return response()->download($path, 'template-kisi-kisi.xlsx')->deleteFileAfterSend(true);
+    }
+
+    public function blueprintWord(BlueprintTemplateDocument $document): BinaryFileResponse
+    {
+        $path = tempnam(sys_get_temp_dir(), 'kkw').'.docx';
+        $document->build($path);
+
+        return response()
+            ->download($path, 'template-kisi-kisi.docx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+            ->deleteFileAfterSend(true);
     }
 
     public function naskah(NaskahTemplateDocument $document): BinaryFileResponse

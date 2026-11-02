@@ -52,6 +52,9 @@ return [
     | Kata sandi
     |--------------------------------------------------------------------------
     */
+    // true = job berat (impor, ekstraksi naskah, PDF) berjalan segera setelah respons tanpa worker antrian.
+    'inline_jobs' => env('BANKSOAL_INLINE_JOBS', true),
+
     'password' => [
         'min_length' => 10,
         'generated_length' => 10,

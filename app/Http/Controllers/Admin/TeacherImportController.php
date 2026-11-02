@@ -53,7 +53,7 @@ class TeacherImportController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        ImportTeachersJob::dispatch($batch->id);
+        \App\Support\RunJob::dispatch(new ImportTeachersJob($batch->id));
 
         ActivityLogger::log('import.teachers.started', $batch, ['file' => $batch->original_name]);
 

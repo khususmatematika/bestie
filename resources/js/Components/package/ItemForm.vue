@@ -97,8 +97,32 @@ const form = useForm({
     attachment: null as File | null,
 });
 
+const matching = computed(() => {
+    if (form.type !== 'menjodohkan') return null;
+    const pairs = new Set<string>();
+    const values: string[] = [];
+    const distractors: string[] = [];
+    for (const raw of form.answer_key.split(/\r?\n/)) {
+        const line = raw.trim();
+        const d = /^(?:pilihan\s+)?pengecoh\s*[:：]\s*(.*)$/i.exec(line);
+        if (d) {
+            distractors.push(...d[1].split(';').map((x) => x.trim()).filter(Boolean));
+            continue;
+        }
+        for (const part of line.split(';')) {
+            const m = /^([A-Ea-e])\s*[=:]\s*(.+)$/s.exec(part.trim());
+            if (m) {
+                pairs.add(m[1].toUpperCase());
+                values.push(m[2].trim());
+            }
+        }
+    }
+    const statements = Object.values(form.options).filter((t) => String(t ?? '').trim() !== '').length;
+    return { statements, choices: new Set([...values, ...distractors]).size, pairs: pairs.size };
+});
+
 const hasOptions = computed(() => props.types.find((t) => t.value === form.type)?.has_options ?? false);
-const keyHint = computed(() => (form.type === 'benar_salah' ? 'B (Benar) atau S (Salah)' : form.type === 'menjodohkan' ? 'Pasangan jawaban, mis. A=150; B=120' : form.type === 'pg_kompleks' ? 'Beberapa huruf dipisah koma, mis. A,C' : hasOptions.value ? 'Satu huruf, mis. B' : 'Jawaban singkat / kata kunci'));
+const keyHint = computed(() => (form.type === 'benar_salah' ? 'B (Benar) atau S (Salah); bila ada beberapa pernyataan: A=B; B=S; C=B' : form.type === 'menjodohkan' ? 'Baris 1: pasangan benar, mis. A=Surabaya; B=Bandung. Baris 2: Pengecoh: Malang; Medan (pilihan jawaban tambahan)' : form.type === 'pg_kompleks' ? 'Beberapa huruf dipisah koma, mis. A,C' : hasOptions.value ? 'Satu huruf, mis. B' : 'Jawaban singkat / kata kunci'));
 
 function err(key: string): string | undefined {
     return (form.errors as Record<string, string | undefined>)[key];
@@ -169,8 +193,8 @@ function pickFile(event: Event): void {
                 <p class="mt-1 font-serif text-ink"><MathText :text="form.stem" :images="imageMap" /></p>
             </div>
 
-            <div v-if="hasOptions" class="space-y-2">
-                <p class="label">Pilihan jawaban</p>
+            <div v-if="hasOptions || form.type === 'benar_salah'" class="space-y-2">
+                <p class="label">{{ form.type === 'benar_salah' ? 'Pernyataan (opsional, bila ada beberapa pernyataan Benar/Salah)' : form.type === 'menjodohkan' ? 'Pernyataan' : 'Pilihan jawaban' }}</p>
                 <div v-for="letter in LETTERS" :key="letter" class="flex items-center gap-2">
                     <span class="w-6 text-center text-sm font-bold text-primary-700 dark:text-primary-300">{{ letter }}</span>
                     <input v-model="form.options[letter]" class="input font-serif" :aria-label="`Pilihan ${letter}`" @paste="onPaste($event, letter)" />
@@ -180,8 +204,12 @@ function pickFile(event: Event): void {
 
             <div class="grid gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" :label="hasOptions ? 'Kunci jawaban' : 'Kunci / jawaban singkat'" :error="form.errors.answer_key" :hint="keyHint" :required="hasOptions">
-                    <input :id="id" v-model="form.answer_key" class="input" :class="{ 'input-error': invalid }" />
+                    <textarea v-if="form.type === 'menjodohkan'" :id="id" v-model="form.answer_key" rows="3" class="input" :class="{ 'input-error': invalid }" />
+                    <input v-else :id="id" v-model="form.answer_key" class="input" :class="{ 'input-error': invalid }" />
                 </FormField>
+                <p v-if="matching" class="self-end rounded-xl px-3 py-2 text-xs font-semibold" :class="matching.choices > matching.statements ? 'bg-success-50 text-success-700 dark:bg-success-500/10' : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10'" role="status">
+                    {{ matching.statements }} pernyataan · {{ matching.choices }} pilihan jawaban<template v-if="matching.choices <= matching.statements"> — tambahkan minimal 1 pengecoh agar pilihan lebih banyak daripada pernyataan.</template>
+                </p>
             </div>
             <FormField v-slot="{ id, invalid }" label="Pedoman penskoran" :error="form.errors.scoring_guide" :hint="hasOptions ? 'Opsional untuk pilihan ganda.' : 'Wajib untuk uraian/isian bila kunci kosong.'">
                 <textarea :id="id" v-model="form.scoring_guide" rows="3" class="input" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'scoring_guide')" />

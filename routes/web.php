@@ -91,6 +91,7 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
     // Panduan penggunaan + template standar (semua peran)
     Route::get('/panduan', [GuideController::class, 'show'])->name('guide');
     Route::get('/templates/kisi-kisi', [TemplateController::class, 'blueprint'])->middleware('throttle:30,1')->name('templates.blueprint');
+    Route::get('/templates/kisi-kisi-word', [TemplateController::class, 'blueprintWord'])->middleware('throttle:30,1')->name('templates.blueprint-word');
     Route::get('/templates/naskah', [TemplateController::class, 'naskah'])->middleware('throttle:30,1')->name('templates.naskah');
 
     // Notifikasi dalam aplikasi (semua peran)

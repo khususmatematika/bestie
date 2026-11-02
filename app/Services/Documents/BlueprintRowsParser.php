@@ -8,7 +8,7 @@ use App\Enums\QuestionType;
 
 /**
  * Menerjemahkan baris kisi-kisi (hasil pembacaan Excel dengan judul kolom snake_case)
- * menjadi data per nomor: capaian pembelajaran, materi, indikator, level, bentuk, kunci, bobot.
+ * menjadi data per nomor. WAJIB: nomor soal, indikator soal, bentuk soal. Opsional: capaian pembelajaran, materi, submateri, level, kunci, bobot.
  */
 final class BlueprintRowsParser
 {
@@ -59,6 +59,14 @@ final class BlueprintRowsParser
 
             if ($shape !== '' && $type === null) {
                 $warnings[] = "Kisi-kisi nomor {$number}: bentuk soal '{$shape}' tidak dikenali.";
+            }
+
+            if ($this->text($this->pick($row, 'indikator')) === '') {
+                $warnings[] = "Kisi-kisi nomor {$number}: indikator soal wajib diisi.";
+            }
+
+            if ($shape === '') {
+                $warnings[] = "Kisi-kisi nomor {$number}: bentuk soal wajib diisi (PG, PGK, BS, MJD, IS, atau Uraian).";
             }
 
             $result[$number] = [

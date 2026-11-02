@@ -26,7 +26,7 @@ final class NaskahTemplateDocument
             '• Beri JUDUL BAGIAN sebelum soal-soalnya, satu baris sendiri: Pilihan Ganda, Pilihan Ganda Kompleks, Benar/Salah, Menjodohkan, Isian, atau Uraian. Judul ini menentukan bentuk soal.',
             '• NOMOR SOAL memakai daftar bernomor otomatis Word (tombol Numbering). Nomor berlanjut di seluruh dokumen dan harus sama dengan kolom "No. Soal" pada kisi-kisi.',
             '• PILIHAN JAWABAN memakai daftar huruf otomatis (A, B, C, D, E). Mulai ulang dari A pada tiap soal (klik kanan → Restart at A).',
-            '• KUNCI JAWABAN = beri WARNA FONT MERAH pada pilihan yang benar. Benar/Salah: warnai huruf B atau S pada "(B/S)". Menjodohkan: tulis nilai pasangan di dalam tanda kurung merah di akhir tiap pernyataan.',
+            '• KUNCI JAWABAN = beri WARNA FONT MERAH pada pilihan yang benar. Benar/Salah: warnai huruf B atau S pada "(B/S)". Menjodohkan: tulis jawaban yang benar di dalam tanda kurung merah di akhir tiap pernyataan, lalu tambahkan satu baris "Pengecoh: ..." (pisahkan dengan titik koma) agar pilihan jawaban lebih banyak daripada pernyataan, mis. 5 pernyataan = minimal 6 pilihan.',
             '• Isian dan Uraian: kunci/pedoman penskoran tidak dibaca dari naskah; isi di BESTIE pada halaman soal.',
             '• RUMUS: Insert → Equation. GAMBAR: tempel langsung di bawah teks soal. Teks tanpa nomor di antara soal dan pilihan dianggap bagian soal (stimulus).',
             '• Warna oranye dianggap penanda revisi dan diabaikan. Satu berkas maksimal 5 pilihan (A–E) per soal.',
@@ -65,11 +65,13 @@ final class NaskahTemplateDocument
         $d->paragraph('', ['after' => 0]);
         $d->paragraph('Menjodohkan', ['bold' => true, 'after' => 80]);
 
-        $d->runs([['text' => 'Jodohkanlah setiap akar kuadrat berikut dengan hasilnya!']], ['numId' => $q]);
+        $d->runs([['text' => 'Jodohkanlah setiap ibu kota provinsi berikut dengan provinsinya!']], ['numId' => $q]);
         $l = $d->newList('upperLetter');
-        foreach ([['Akar dari 16', '4'], ['Akar dari 81', '9'], ['Akar dari 144', '12']] as [$left, $value]) {
+        foreach ([['Surabaya', 'Jawa Timur'], ['Bandung', 'Jawa Barat'], ['Semarang', 'Jawa Tengah'], ['Denpasar', 'Bali'], ['Mataram', 'Nusa Tenggara Barat']] as [$left, $value]) {
             $d->runs([['text' => $left.' ('], ['text' => $value, 'color' => self::RED], ['text' => ')']], ['numId' => $l]);
         }
+        // Pilihan jawaban = kelima jawaban benar di atas + pengecoh (minimal 1, jadi 6 pilihan untuk 5 pernyataan).
+        $d->paragraph('Pengecoh: Sulawesi Selatan; Kalimantan Timur', ['italic' => true, 'after' => 80]);
 
         // ---- Isian
         $d->paragraph('', ['after' => 0]);

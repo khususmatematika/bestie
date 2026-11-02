@@ -109,7 +109,16 @@ class QuestionItem extends Model
         $hasKey = trim((string) $this->answer_key) !== ''
             || ($this->type->acceptsScoringGuideAsKey() && trim((string) $this->scoring_guide) !== '');
 
-        if ($hasKey && $this->type === QuestionType::BenarSalah && ! in_array($this->answer_key, ['B', 'S'], true)) {
+        $multiTf = $this->type === QuestionType::BenarSalah && array_filter((array) $this->options, static fn (mixed $v): bool => trim((string) $v) !== '') !== [];
+
+        if ($hasKey && $multiTf) {
+            $statements = array_keys(array_filter((array) $this->options, static fn (mixed $v): bool => trim((string) $v) !== ''));
+            preg_match_all('/([A-E])\s*=\s*([BS])/u', (string) $this->answer_key, $m);
+
+            if (array_diff($statements, $m[1]) !== []) {
+                $missing[] = 'kunci Benar/Salah tiap pernyataan (mis. A=B; B=S)';
+            }
+        } elseif ($hasKey && $this->type === QuestionType::BenarSalah && ! in_array($this->answer_key, ['B', 'S'], true)) {
             $missing[] = 'kunci Benar/Salah (B atau S)';
         } elseif (! $hasKey) {
             $missing[] = $this->type->acceptsScoringGuideAsKey() ? 'kunci/pedoman penskoran' : 'kunci jawaban';

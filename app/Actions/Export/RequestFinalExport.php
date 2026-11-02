@@ -84,7 +84,7 @@ final class RequestFinalExport
             }
 
             if (GeneratePackageExport::wantsPdf() && $export->refresh()->status === ExportStatus::Ready) {
-                GeneratePackageExportJob::dispatch($export->id);
+                \App\Support\RunJob::dispatch(new GeneratePackageExportJob($export->id));
             }
         }
 

@@ -12,6 +12,7 @@ use App\Models\QuestionItem;
 use App\Models\QuestionPackage;
 use App\Services\Documents\DocxBuilder;
 use App\Support\ExportFormat;
+use App\Support\MatchingKey;
 use App\Support\Settings;
 
 /**
@@ -191,11 +192,24 @@ final class PackageDocument
             }
         }
 
-        if ($item->type === QuestionType::BenarSalah) {
+        if ($item->type === QuestionType::BenarSalah && array_filter((array) $item->options, static fn (mixed $v): bool => trim((string) $v) !== '') !== []) {
+            foreach ((array) $item->options as $letter => $text) {
+                $doc->runs([['text' => $letter.'. '], ...$doc->richRuns((string) $text, [], $loader), ['text' => '  (Benar / Salah)', 'italic' => true]], ['indent' => 0.8, 'after' => 20]);
+            }
+        } elseif ($item->type === QuestionType::BenarSalah) {
             $doc->paragraph('Benar / Salah', ['italic' => true, 'indent' => 0.8, 'size' => 10]);
         } elseif ($item->type->hasOptions()) {
             foreach ((array) $item->options as $letter => $text) {
                 $doc->runs([['text' => $letter.'. '], ...$doc->richRuns((string) $text, [], $loader)], ['indent' => 0.8, 'after' => 20]);
+            }
+
+            // Menjodohkan: daftar pilihan jawaban (pasangan benar + pengecoh), tanpa membocorkan urutan kunci.
+            if ($item->type === QuestionType::Menjodohkan) {
+                $choices = MatchingKey::parse((string) $item->answer_key)['choices'];
+
+                if ($choices !== []) {
+                    $doc->paragraph('Pilihan jawaban: '.implode('; ', $choices), ['italic' => true, 'indent' => 0.8, 'after' => 20, 'size' => 10]);
+                }
             }
         } else {
             $doc->paragraph($item->type->label().$bobot, ['italic' => true, 'indent' => 0.8, 'size' => max(8, 10)]);

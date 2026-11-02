@@ -10,9 +10,9 @@
    gunakan token ini lewat kelas Tailwind (bg-primary-600, text-ink, dst).
 ------------------------------------------------------------------- */
 @theme {
-    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-    --font-serif: 'Source Serif 4', ui-serif, Georgia, serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Source Serif 4 Variable', 'Source Serif 4', ui-serif, Georgia, serif;
+    --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
     --color-primary-50: #eef2ff;
     --color-primary-100: #e0e7ff;

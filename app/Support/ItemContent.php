@@ -36,7 +36,8 @@ final class ItemContent
 
         ksort($options);
 
-        if (! $type->hasOptions()) {
+        // Benar/Salah boleh memuat beberapa pernyataan (A–E) yang masing-masing dinilai B/S.
+        if (! $type->hasOptions() && $type !== QuestionType::BenarSalah) {
             $options = [];
         }
 
@@ -92,6 +93,11 @@ final class ItemContent
         }
 
         if ($type === QuestionType::BenarSalah) {
+            // Beberapa pernyataan: "A=B; B=S; C=B".
+            if (str_contains($key, '=')) {
+                return mb_strtoupper(preg_replace('/\s*[;,]\s*/u', '; ', trim($key)) ?? $key);
+            }
+
             $first = mb_strtoupper(mb_substr(trim($key), 0, 1));
 
             return in_array($first, ['B', 'S'], true) ? $first : $key;

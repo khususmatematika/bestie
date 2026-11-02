@@ -166,3 +166,77 @@ Pengecekan akun nonaktif terlalu ketat: pengguna buatan tes yang atribut `is_act
 
 ## Mapel awal kosong
 `php artisan db:seed` kini hanya membuat peran dan tingkat X/XI/XII (`GradeLevelSeeder`). Mapel diisi admin lewat menu **Mapel** atau **Impor Mapel**. `ReferenceSeeder` (14 mapel contoh) tetap ada untuk tes, tidak dipanggil `db:seed`.
+
+---
+
+## Kecepatan (impor & proses lama)
+
+**Penyebab utama di kode (sudah diperbaiki):**
+1. Impor guru, ekstraksi naskah, dan PDF dikirim ke **antrian**; tanpa `php artisan queue:work` yang hidup, semuanya menunggu selamanya. Kini berjalan otomatis **segera setelah respons dikirim** (tanpa worker). Untuk kembali memakai worker: `BANKSOAL_INLINE_JOBS=false`.
+2. Font Google (Plus Jakarta Sans, Source Serif 4, JetBrains Mono) dimuat dari internet — bila server/jaringan sekolah lambat atau offline, **setiap halaman tertahan**. Kini font dipasang lokal lewat `@fontsource-variable/*` (CSP ikut diperketat).
+
+**Setelan server yang wajib (Proxmox) — `.env` & perintah:**
+```bash
+composer install --no-dev -o
+php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan event:cache
+```
+```dotenv
+APP_DEBUG=false
+BCRYPT_ROUNDS=10          # default 12; impor 100 guru jadi ±4x lebih cepat, tetap aman
+CACHE_STORE=file          # cache tidak perlu ke database
+DB_HOST=127.0.0.1         # pakai IP, bukan nama host (hindari DNS lambat)
+```
+- Aktifkan **OPcache** di `php.ini`: `opcache.enable=1`, `opcache.memory_consumption=256`, `opcache.validate_timestamps=0` (jalankan `systemctl reload php8.x-fpm` setelah deploy).
+- MySQL: tambahkan `skip-name-resolve` di `my.cnf`; beri VM/LXC minimal 2 vCPU & 2 GB RAM.
+- Nginx: aktifkan `gzip on;` untuk css/js/json.
+- Setelah menimpa berkas: `npm install && npm run build`.
+
+---
+
+## Soal menjodohkan dengan pengecoh
+Pilihan jawaban kini boleh **lebih banyak** daripada pernyataan (mis. 5 pernyataan → 6+ pilihan, 5 benar + pengecoh).
+
+**Format di naskah Word** (template baru sudah memuat contohnya):
+```
+6. Jodohkanlah setiap ibu kota provinsi berikut dengan provinsinya!
+   A. Surabaya (Jawa Timur)        ← jawaban benar di dalam tanda kurung, font MERAH
+   B. Bandung (Jawa Barat)
+   ...
+   Pengecoh: Sulawesi Selatan; Kalimantan Timur     ← satu baris, dipisah titik koma
+```
+- Kunci tersimpan: `A=Jawa Timur; B=Jawa Barat; …` + baris `Pengecoh: …`. Tanpa baris pengecoh, soal lama tetap terbaca seperti sebelumnya.
+- Halaman soal menampilkan **Pilihan jawaban** (benar = hijau, pengecoh = kuning). Formulir edit punya kolom kunci 3 baris dan penghitung "n pernyataan · m pilihan jawaban" (peringatan bila m ≤ n).
+- Naskah final mencetak baris **"Pilihan jawaban: …"** (urut abjad, tidak membocorkan kunci); lembar kunci memuat pasangan + pengecoh.
+- Template naskah & kisi-kisi serta Panduan sudah diperbarui. **[TERMINAL]** `npm run build && php artisan test`.
+
+---
+
+## Kolom wajib kisi-kisi
+Yang **wajib**: **Indikator Soal**, **No. Soal**, **Bentuk Soal**. Capaian Pembelajaran, Materi, Submateri, dan Level Kognitif **opsional**.
+- Template kisi-kisi: tiga judul kolom wajib berwarna oranye; lembar Petunjuk menandai WAJIB/OPSIONAL.
+- Saat unggah, indikator atau bentuk soal yang kosong menghasilkan peringatan per nomor (nomor kosong tetap dilewati).
+- Halaman Panduan diperbarui. **[TERMINAL]** `npm run build && php artisan test`.
+
+---
+
+## "40 nomor belum lengkap" pada naskah Bahasa Indonesia
+
+**Penyebab:** naskah Word memakai penomoran otomatis, tetapi nomor soalnya berada pada *tingkat daftar* 6 (PG) dan 2 (PGK/Menjodohkan/Benar-Salah), bukan tingkat 0 seperti template. Pembaca naskah hanya mengenali tingkat 0 → **0 soal terbaca**, sehingga 40 nomor dibuat hanya dari kisi-kisi (tanpa teks soal & kunci).
+
+**Perbaikan:**
+- Nomor soal kini dikenali pada tingkat daftar berapa pun (daftar angka bersarang di dalam stimulus tetap dianggap teks).
+- **Benar/Salah beberapa pernyataan** (A, B, C masing-masing "(B/S)" dengan huruf merah) kini didukung. Kunci: `A=B; B=S; C=B`. Halaman soal menampilkan label Benar/Salah per pernyataan; naskah final mencetak "(Benar / Salah)" di tiap pernyataan; formulir edit menampilkan kolom pernyataan.
+- Pesan "belum lengkap" kini menyebut kolom yang benar-benar dicek (teks soal, indikator soal, kunci jawaban, pilihan). Bobot tidak diwajibkan.
+- Hasil uji dengan berkas Anda: 40 soal terbaca (20 PG, 10 PGK, 5 Menjodohkan, 5 Benar/Salah) dan semua cocok dengan kisi-kisi tanpa peringatan.
+
+**Yang masih perlu Anda isi: nomor 17** — pada naskah tidak ada pilihan yang diberi **warna merah**, jadi kunci kosong. Beri warna merah pada pilihan yang benar (judul penelitian: *"menambahkan lokasi dan subjek penelitian"* bila itu kuncinya), lalu unggah ulang / isi kunci di halaman soal.
+
+**[TERMINAL]** `npm run build && php artisan test`, lalu unggah ulang naskah pada paket draft (ekstraksi ulang).
+
+---
+
+## Template kisi-kisi Word (.docx)
+- Template kisi-kisi kini tersedia juga dalam **Word (.docx)**: tabel lanskap berjudul kolom standar, kolom wajib (Indikator Soal, No. Soal, Bentuk Soal) berjudul oranye, contoh nomor 1–8. Unduh di halaman **Buat paket** (dua tombol: .docx dan .xlsx) dan di **Panduan**.
+- Keterangan unggah kini: **Kisi-kisi (.docx atau .xlsx)** (sebelumnya tertulis .xlsx/.csv).
+- Hasil uji: template Word terbaca kembali 8 nomor tanpa peringatan.
+- **[TERMINAL]** `npm run build && php artisan test`.

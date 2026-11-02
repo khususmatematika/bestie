@@ -39,7 +39,7 @@ final class ReplacePackageFiles
             $this->attach->handle($package, $naskah, FileKind::Naskah, $teacher);
         }
 
-        ExtractPackageItemsJob::dispatch($package->id);
+        \App\Support\RunJob::dispatch(new ExtractPackageItemsJob($package->id));
 
         ActivityLogger::log('package.files_replaced', $package, [], $teacher);
     }
