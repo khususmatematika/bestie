@@ -107,6 +107,16 @@ final class ItemContent
     }
 
     /**
+     * Seluruh teks butir yang dapat memuat penanda gambar: soal, pilihan, kunci (menjodohkan), pedoman penskoran.
+     *
+     * @param  array<string, mixed>  $content
+     */
+    private static function allText(array $content): string
+    {
+        return (string) ($content['stem'] ?? '').' '.implode(' ', array_filter((array) ($content['options'] ?? []), 'is_string')).' '.(string) ($content['answer_key'] ?? '').' '.(string) ($content['scoring_guide'] ?? '');
+    }
+
+    /**
      * Id lampiran gambar yang dirujuk penanda ⟦img:ID⟧ pada teks butir.
      *
      * @param  array<string, mixed>  $content
@@ -114,7 +124,7 @@ final class ItemContent
      */
     public static function referencedImageIds(array $content): array
     {
-        $text = (string) ($content['stem'] ?? '').' '.implode(' ', array_filter((array) ($content['options'] ?? []), 'is_string')).' '.(string) ($content['scoring_guide'] ?? '');
+        $text = self::allText($content);
         preg_match_all('/⟦img:(\d+)⟧/u', $text, $m);
 
         return array_values(array_unique(array_map('intval', $m[1])));
@@ -135,7 +145,8 @@ final class ItemContent
             $text,
         ) ?? $text;
 
-        foreach (['stem', 'scoring_guide'] as $key) {
+        // answer_key ikut: pada soal menjodohkan, pilihan jawaban/pengecoh boleh berupa gambar.
+        foreach (['stem', 'scoring_guide', 'answer_key'] as $key) {
             if (is_string($content[$key] ?? null)) {
                 $content[$key] = trim($replace($content[$key]));
             }
@@ -156,7 +167,7 @@ final class ItemContent
      */
     public static function pendingImagePaths(array $content): array
     {
-        $text = (string) ($content['stem'] ?? '').' '.implode(' ', array_filter((array) ($content['options'] ?? []), 'is_string')).' '.(string) ($content['scoring_guide'] ?? '');
+        $text = self::allText($content);
         preg_match_all('/⟦IMG:([^⟧]*)⟧/u', $text, $m);
 
         return array_values(array_unique($m[1]));

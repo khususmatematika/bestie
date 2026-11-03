@@ -223,11 +223,62 @@ final class DocxStructureReader
 
         return [
             'text' => trim($text),
+            'rich' => $this->rich($runs),
             'bold' => $textRuns > 0 && $boldRuns === $textRuns,
             'list' => $list,
             'runs' => $runs,
             'images' => $images,
         ];
+    }
+
+
+    /**
+     * Teks paragraf dengan penanda format <b>, <i>, <u> (sesuai huruf tebal/miring/garis bawah pada Word).
+     * Run bertetangga dengan format sama digabung; teks kosong/hanya gambar tidak diberi penanda.
+     *
+     * @param  list<array<string, mixed>>  $runs
+     */
+    private function rich(array $runs): string
+    {
+        $groups = [];
+
+        foreach ($runs as $run) {
+            $flags = [(bool) ($run['b'] ?? false), (bool) ($run['i'] ?? false), (bool) ($run['u'] ?? false)];
+            $last = array_key_last($groups);
+
+            if ($last !== null && $groups[$last]['f'] === $flags) {
+                $groups[$last]['t'] .= $run['t'];
+            } else {
+                $groups[] = ['f' => $flags, 't' => $run['t']];
+            }
+        }
+
+        $out = '';
+
+        foreach ($groups as $group) {
+            $text = $group['t'];
+            $visible = trim((string) preg_replace('/⟦IMG:[^⟧]*⟧/u', '', $text));
+
+            if ($visible === '' || ! in_array(true, $group['f'], true)) {
+                $out .= $text;
+
+                continue;
+            }
+
+            // Spasi di tepi tetap di luar penanda agar tampilan rapi.
+            preg_match('/^(\s*)(.*?)(\s*)$/us', $text, $m);
+            $inner = $m[2];
+
+            foreach (['b', 'i', 'u'] as $k => $tag) {
+                if ($group['f'][$k]) {
+                    $inner = "<{$tag}>{$inner}</{$tag}>";
+                }
+            }
+
+            $out .= $m[1].$inner.$m[3];
+        }
+
+        return trim($out);
     }
 
     /**
@@ -302,13 +353,19 @@ final class DocxStructureReader
 
         $props = $xpath->query('./w:rPr', $run)?->item(0);
         $bold = false;
+        $italic = false;
+        $underline = false;
 
         if ($props instanceof DOMElement) {
             $b = $xpath->query('./w:b', $props)?->item(0);
             $bold = $b instanceof DOMElement && ! in_array($b->getAttributeNS(self::NS_W, 'val'), ['0', 'false'], true);
+            $i = $xpath->query('./w:i', $props)?->item(0);
+            $italic = $i instanceof DOMElement && ! in_array($i->getAttributeNS(self::NS_W, 'val'), ['0', 'false'], true);
+            $u = $xpath->query('./w:u', $props)?->item(0);
+            $underline = $u instanceof DOMElement && ! in_array($u->getAttributeNS(self::NS_W, 'val'), ['none', '0', 'false'], true);
         }
 
-        $runs[] = ['t' => $text, 'red' => $this->isRed($xpath->query('./w:rPr/w:color', $run)?->item(0))];
+        $runs[] = ['t' => $text, 'red' => $this->isRed($xpath->query('./w:rPr/w:color', $run)?->item(0)), 'b' => $bold, 'i' => $italic, 'u' => $underline];
 
         if (trim($text) !== '') {
             $textRuns++;

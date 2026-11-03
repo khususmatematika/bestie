@@ -1,80 +1,65 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Copy, LoaderCircle, Plus, Search, Trash2, UserCog } from '@lucide/vue';
+import { Copy, LoaderCircle, Search, UserCog } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
-import { useConfirm } from '@/Composables/useConfirm';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import FormField from '@/Components/ui/FormField.vue';
 import Modal from '@/Components/ui/Modal.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
-import Pagination from '@/Components/ui/Pagination.vue';
-import type { Paginated } from '@/types';
 
-interface Assignment {
-    id: number;
-    teacher: string;
+interface Row {
+    key: string;
+    subject_id: number;
+    grade_level_id: number;
     subject: string;
     code: string;
     grade: string;
+    phase: string | null;
+    teachers: { assignment_id: number; id: number; name: string }[];
 }
 
 const props = defineProps<{
-    assignments: Paginated<Assignment>;
+    rows: Row[];
     semesters: { id: number; label: string; archived: boolean }[];
     selected_semester_id: number;
     teachers: { id: number; name: string }[];
-    subjects: { id: number; name: string; code: string; grade_ids: number[] }[];
-    grades: { id: number; name: string }[];
-    filters: { search: string };
 }>();
 
-const { confirm } = useConfirm();
-const open = ref(false);
 const rolloverOpen = ref(false);
 const semesterId = ref(props.selected_semester_id);
-const search = ref(props.filters.search);
+const search = ref('');
+const filter = ref<'all' | 'empty' | 'filled'>('all');
 
-const form = useForm({
-    semester_id: props.selected_semester_id,
-    teacher_id: '' as number | '',
-    subject_id: '' as number | '',
-    grade_level_ids: [] as number[],
-});
-
-// Hanya tingkat yang memang diajarkan untuk mapel terpilih yang bisa dicentang.
-const availableGrades = computed(() => {
-    const subject = props.subjects.find((s) => s.id === form.subject_id);
-    return subject ? props.grades.filter((g) => subject.grade_ids.includes(g.id)) : [];
-});
-
-watch(
-    () => form.subject_id,
-    () => (form.grade_level_ids = []),
-);
 const rollover = useForm({ from_semester_id: '' as number | '', to_semester_id: props.selected_semester_id });
+const isArchived = computed(() => props.semesters.find((s) => s.id === semesterId.value)?.archived ?? false);
 
-const isArchived = () => props.semesters.find((s) => s.id === semesterId.value)?.archived ?? false;
+const visible = computed(() => {
+    const q = search.value.trim().toLowerCase();
+
+    return props.rows.filter((r) => {
+        if (filter.value === 'empty' && r.teachers.length) return false;
+        if (filter.value === 'filled' && !r.teachers.length) return false;
+
+        return q === '' || r.subject.toLowerCase().includes(q) || r.code.toLowerCase().includes(q) || r.teachers.some((t) => t.name.toLowerCase().includes(q));
+    });
+});
+
+const emptyCount = computed(() => props.rows.filter((r) => !r.teachers.length).length);
+const filledCount = computed(() => props.rows.length - emptyCount.value);
 
 function reload(): void {
-    router.get('/admin/assignments', { semester_id: semesterId.value, search: search.value || undefined }, { preserveState: true, replace: true });
+    router.get('/admin/assignments', { semester_id: semesterId.value }, { preserveState: true, preserveScroll: true, replace: true });
 }
-
-let timer: ReturnType<typeof setTimeout> | undefined;
-watch(search, () => {
-    clearTimeout(timer);
-    timer = setTimeout(reload, 350);
-});
 watch(semesterId, reload);
 
-function openCreate(): void {
-    form.reset('teacher_id', 'subject_id', 'grade_level_ids');
-    form.semester_id = semesterId.value;
-    form.clearErrors();
-    open.value = true;
-}
+function assign(r: Row, e: Event): void {
+    const value = (e.target as HTMLSelectElement).value;
 
-function submit(): void {
-    form.post('/admin/assignments', { preserveScroll: true, onSuccess: () => (open.value = false) });
+    router.post(
+        '/admin/assignments/assign',
+        { semester_id: semesterId.value, subject_id: r.subject_id, grade_level_id: r.grade_level_id, teacher_id: value === '' ? null : Number(value) },
+        { preserveScroll: true },
+    );
 }
 
 function openRollover(): void {
@@ -87,92 +72,68 @@ function openRollover(): void {
 function submitRollover(): void {
     rollover.post('/admin/assignments/rollover', { preserveScroll: true, onSuccess: () => (rolloverOpen.value = false) });
 }
-
-async function remove(a: Assignment): Promise<void> {
-    const ok = await confirm({
-        title: 'Hapus penugasan?',
-        message: `${a.teacher} — ${a.subject} kelas ${a.grade} akan dihapus dari semester ini.`,
-        confirmLabel: 'Hapus',
-        danger: true,
-    });
-
-    if (ok) router.delete(`/admin/assignments/${a.id}`, { preserveScroll: true });
-}
 </script>
 
 <template>
     <Head title="Penugasan Mengajar" />
-    <PageHeader title="Penugasan mengajar" description="Hubungkan guru dengan mapel dan tingkat untuk setiap semester.">
-        <button type="button" class="btn-secondary" :disabled="isArchived()" @click="openRollover"><Copy class="size-4" /> Salin dari semester lain</button>
-        <button type="button" class="btn-primary" :disabled="isArchived() || !semesters.length" @click="openCreate"><Plus class="size-4" /> Tambah penugasan</button>
+    <PageHeader title="Penugasan mengajar" description="Seluruh mapel beserta fasenya sudah tampil (urut abjad). Pilih satu guru pada mapel yang dimaksud.">
+        <button type="button" class="btn-secondary" :disabled="isArchived" @click="openRollover"><Copy class="size-4" /> Salin dari semester lain</button>
     </PageHeader>
 
     <section class="card overflow-hidden">
-        <div class="flex flex-col gap-3 border-b border-line p-4 sm:flex-row">
+        <div class="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center">
             <select v-model="semesterId" class="input sm:!w-64" aria-label="Semester">
                 <option v-for="s in semesters" :key="s.id" :value="s.id">{{ s.label }}{{ s.archived ? ' (arsip)' : '' }}</option>
             </select>
             <div class="relative flex-1 sm:max-w-xs">
                 <Search class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
-                <input v-model="search" type="search" class="input pl-10" placeholder="Cari nama guru…" aria-label="Cari guru" />
+                <input v-model="search" type="search" class="input pl-10" placeholder="Cari mapel atau guru…" aria-label="Cari mapel atau guru" />
             </div>
+            <select v-model="filter" class="input sm:!w-52" aria-label="Filter penugasan">
+                <option value="all">Semua mapel</option>
+                <option value="empty">Belum ada guru ({{ emptyCount }})</option>
+                <option value="filled">Sudah ada guru</option>
+            </select>
         </div>
 
-        <div v-if="assignments.data.length" class="table-wrap">
+        <div class="flex flex-wrap gap-2 border-b border-line px-4 py-3 text-sm">
+            <span class="badge bg-surface-2 text-ink-soft">Total mapel-kelas: <b class="ml-1 text-ink">{{ rows.length }}</b></span>
+            <span class="badge bg-success-50 text-success-700 dark:bg-success-500/15">Penugasan terisi: <b class="ml-1">{{ filledCount }}</b></span>
+            <span class="badge bg-warning-50 text-warning-700 dark:bg-warning-500/15">Belum ada guru: <b class="ml-1">{{ emptyCount }}</b></span>
+        </div>
+
+        <div v-if="visible.length" class="table-wrap">
             <table class="table">
-                <thead><tr><th>Guru</th><th>Mapel</th><th>Tingkat</th><th class="text-right">Aksi</th></tr></thead>
+                <thead><tr><th>Mapel</th><th>Kelas</th><th>Fase</th><th>Guru</th></tr></thead>
                 <tbody>
-                    <tr v-for="a in assignments.data" :key="a.id">
-                        <td class="font-bold">{{ a.teacher }}</td>
-                        <td>{{ a.subject }} <span class="font-mono text-[11px] text-ink-faint">{{ a.code }}</span></td>
-                        <td>Kelas {{ a.grade }}</td>
+                    <tr v-for="r in visible" :key="r.key">
+                        <td class="font-bold">{{ r.subject }} <span class="font-mono text-[11px] font-normal text-ink-faint">{{ r.code }}</span></td>
+                        <td class="whitespace-nowrap">Kelas {{ r.grade }}</td>
+                        <td class="whitespace-nowrap text-ink-soft">{{ r.phase ?? '—' }}</td>
                         <td>
-                            <div class="flex justify-end">
-                                <button v-if="!isArchived()" type="button" class="btn-icon hover:!text-danger-600" :aria-label="`Hapus penugasan ${a.teacher}`" @click="remove(a)"><Trash2 class="size-4" /></button>
-                            </div>
+                            <select
+                                v-if="!isArchived"
+                                class="input !w-full min-w-52 !py-1.5 text-sm sm:!w-72"
+                                :value="r.teachers[0]?.id ?? ''"
+                                :aria-label="`Guru ${r.subject} kelas ${r.grade}`"
+                                @change="assign(r, $event)"
+                            >
+                                <option value="">Pilih guru…</option>
+                                <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+                            </select>
+                            <span v-else class="text-ink-soft">{{ r.teachers.map((t) => t.name).join(', ') || '—' }}</span>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <EmptyState v-else title="Belum ada penugasan" description="Tambahkan manual, salin dari semester sebelumnya, atau isi kolom kode_mapel saat impor guru.">
+        <EmptyState v-else-if="!rows.length" title="Belum ada mapel" description="Tambahkan mapel pada menu Mapel & Tingkat atau impor mapel terlebih dahulu.">
             <template #icon><UserCog class="size-7" /></template>
         </EmptyState>
-        <Pagination :meta="assignments" />
+        <EmptyState v-else title="Tidak ada hasil" description="Ubah kata kunci atau filter pencarian.">
+            <template #icon><Search class="size-7" /></template>
+        </EmptyState>
     </section>
-
-    <Modal :open="open" title="Tambah penugasan" @close="open = false">
-        <form id="assign-form" class="space-y-4" @submit.prevent="submit">
-            <FormField v-slot="{ id, invalid }" label="Guru" :error="form.errors.teacher_id" required>
-                <select :id="id" v-model="form.teacher_id" class="input" :class="{ 'input-error': invalid }">
-                    <option value="" disabled>Pilih guru</option>
-                    <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
-                </select>
-            </FormField>
-            <FormField v-slot="{ id, invalid }" label="Mapel" :error="form.errors.subject_id" required>
-                <select :id="id" v-model="form.subject_id" class="input" :class="{ 'input-error': invalid }">
-                    <option value="" disabled>Pilih mapel</option>
-                    <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }} ({{ s.code }})</option>
-                </select>
-            </FormField>
-            <fieldset>
-                <legend class="label">Tingkat<span class="ml-0.5 text-danger-500">*</span></legend>
-                <div class="flex flex-wrap gap-2">
-                    <label v-for="g in availableGrades" :key="g.id" class="flex cursor-pointer items-center gap-2 rounded-xl border border-line px-4 py-2 text-sm font-semibold has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50 has-[:checked]:text-primary-700 dark:has-[:checked]:bg-primary-500/15 dark:has-[:checked]:text-primary-300">
-                        <input v-model="form.grade_level_ids" type="checkbox" :value="g.id" class="size-4 accent-primary-600" /> Kelas {{ g.name }}
-                    </label>
-                </div>
-                <p v-if="!form.subject_id" class="mt-1 text-xs text-ink-faint">Pilih mapel terlebih dahulu.</p>
-                <p v-if="form.errors.grade_level_ids" class="error-text" role="alert">{{ form.errors.grade_level_ids }}</p>
-            </fieldset>
-        </form>
-        <template #footer>
-            <button type="button" class="btn-secondary" @click="open = false">Batal</button>
-            <button type="submit" form="assign-form" class="btn-primary" :disabled="form.processing">
-                <LoaderCircle v-if="form.processing" class="size-4 animate-spin" /> Simpan
-            </button>
-        </template>
-    </Modal>
 
     <Modal :open="rolloverOpen" title="Salin penugasan antar semester" description="Penugasan yang sudah ada di semester tujuan tidak diduplikasi." size="sm" @close="rolloverOpen = false">
         <form id="rollover-form" class="space-y-4" @submit.prevent="submitRollover">

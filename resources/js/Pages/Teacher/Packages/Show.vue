@@ -245,7 +245,7 @@ function sizeLabel(bytes: number): string {
                         <div v-if="expanded === i.id" class="border-t border-line bg-surface-2/40 p-4 sm:p-6">
                             <div class="grid gap-6 md:grid-cols-2">
                                 <div class="min-w-0"><p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Kisi-kisi</p><ItemKisi :item="i" /></div>
-                                <div class="min-w-0"><p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Soal</p><ItemSoal :item="i" /></div>
+                                <div class="min-w-0"><p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Soal</p><ItemSoal :item="i" ropes /></div>
                             </div>
                             <div v-if="i.reviews.length" class="mt-4 border-t border-line pt-4">
                                 <p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Catatan validator</p>

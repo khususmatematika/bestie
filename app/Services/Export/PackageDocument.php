@@ -97,7 +97,7 @@ final class PackageDocument
         }
 
         if ($final && $format['show_blueprint']) {
-            $doc->pageBreak()->paragraph('KISI-KISI SOAL', ['bold' => true, 'align' => 'center', 'after' => 200]);
+            $doc->startLandscape()->paragraph('KISI-KISI SOAL', ['bold' => true, 'align' => 'center', 'after' => 200]);
             $doc->table(
                 array_merge([['No', 'Capaian Pembelajaran', 'Materi', 'Indikator soal', 'Level', 'Bentuk']], $items->map(static fn (QuestionItem $i): array => [
                     (string) $i->number,
@@ -107,7 +107,7 @@ final class PackageDocument
                     (string) ($i->blueprint['level'] ?? '—'),
                     $i->type->label(),
                 ])->all()),
-                [6, 24, 16, 30, 8, 16],
+                [5, 26, 18, 31, 7, 13],
             );
         }
 
@@ -121,6 +121,36 @@ final class PackageDocument
 
     private function keyText(QuestionItem $item): string
     {
+        // Menjodohkan dengan pilihan bergambar: kunci ditulis sebagai nomor pilihan (sesuai daftar bernomor pada naskah).
+        if ($item->type === QuestionType::Menjodohkan && str_contains((string) $item->answer_key, '⟦img:')) {
+            $parsed = MatchingKey::parse((string) $item->answer_key);
+            $numbers = array_flip($parsed['choices']);
+
+            return implode("\n", array_map(
+                static fn (string $letter, string $value): string => $letter.' = pilihan '.(($numbers[$value] ?? 0) + 1),
+                array_keys($parsed['pairs']),
+                array_values($parsed['pairs']),
+            ));
+        }
+
+        // Menjodohkan: setiap kunci pada baris sendiri, pengecoh di baris terakhir.
+        if ($item->type === QuestionType::Menjodohkan) {
+            $parsed = MatchingKey::parse((string) $item->answer_key);
+            $lines = [];
+
+            foreach ($parsed['pairs'] as $letter => $value) {
+                $lines[] = $letter.' = '.$value;
+            }
+
+            if ($parsed['distractors'] !== []) {
+                $lines[] = 'Pengecoh: '.implode('; ', $parsed['distractors']);
+            }
+
+            if ($lines !== []) {
+                return implode("\n", $lines);
+            }
+        }
+
         return $item->type === QuestionType::BenarSalah
             ? (['B' => 'Benar', 'S' => 'Salah'][$item->answer_key] ?? (string) $item->answer_key)
             : (string) $item->answer_key;
@@ -141,7 +171,7 @@ final class PackageDocument
 
         $rows = [
             ['Mata pelajaran', $package->subject->name],
-            ['Kelas / Fase', 'Kelas '.$package->gradeLevel->name.($phase ? ' / Fase '.$phase : '')],
+            ['Kelas / Fase', 'Kelas '.$package->gradeLevel->name.($phase ? ' / '.(stripos($phase, 'fase') === 0 ? $phase : 'Fase '.$phase) : '')],
             ['Tahun pelajaran', $period->semester->year->name.' — Semester '.$period->semester->term->label()],
             ['Penyusun', $package->teacher->name],
             ['Validator', ($package->validator?->name ?? '—').($package->is_self_validated ? ' (Divalidasi Mandiri)' : '')],
@@ -204,11 +234,18 @@ final class PackageDocument
             }
 
             // Menjodohkan: daftar pilihan jawaban (pasangan benar + pengecoh), tanpa membocorkan urutan kunci.
+            // Bila ada pilihan bergambar, pilihan diberi nomor (1., 2., …) satu per baris agar dapat dirujuk.
             if ($item->type === QuestionType::Menjodohkan) {
                 $choices = MatchingKey::parse((string) $item->answer_key)['choices'];
 
-                if ($choices !== []) {
-                    $doc->paragraph('Pilihan jawaban: '.implode('; ', $choices), ['italic' => true, 'indent' => 0.8, 'after' => 20, 'size' => 10]);
+                if ($choices !== [] && str_contains(implode(' ', $choices), '⟦img:')) {
+                    $doc->paragraph('Pilihan jawaban:', ['italic' => true, 'indent' => 0.8, 'after' => 20, 'size' => 10]);
+
+                    foreach ($choices as $i => $choice) {
+                        $doc->runs([['text' => ($i + 1).'. '], ...$doc->richRuns($choice, [], $loader)], ['indent' => 1.2, 'after' => 20]);
+                    }
+                } elseif ($choices !== []) {
+                    $doc->runs([['text' => 'Pilihan jawaban: ', 'italic' => true], ...$doc->richRuns(implode('; ', $choices), ['italic' => true], $loader)], ['indent' => 0.8, 'after' => 20]);
                 }
             }
         } else {

@@ -240,3 +240,32 @@ Yang **wajib**: **Indikator Soal**, **No. Soal**, **Bentuk Soal**. Capaian Pembe
 - Keterangan unggah kini: **Kisi-kisi (.docx atau .xlsx)** (sebelumnya tertulis .xlsx/.csv).
 - Hasil uji: template Word terbaca kembali 8 nomor tanpa peringatan.
 - **[TERMINAL]** `npm run build && php artisan test`.
+
+## Format teks (tebal/miring/garis bawah) & menjodohkan bergambar
+
+- **Impor Word**: tebal, miring, dan garis bawah pada naskah ikut terbaca (disimpan sebagai tag `<b>`, `<i>`, `<u>` di teks soal, pilihan, dan kunci). Warna merah tetap penanda kunci.
+- **Edit soal**: tombol **B / I / U** di atas kolom soal, atau blok teks lalu Ctrl+B / Ctrl+I / Ctrl+U (berlaku di teks soal, pilihan/pernyataan, kunci menjodohkan, pedoman penskoran).
+- **Tampil & ekspor DOCX**: tag dirender sebagai tebal/miring/garis bawah (tanpa v-html) dan dikonversi menjadi format Word asli.
+- **Menjodohkan teks↔gambar / gambar↔gambar**: pernyataan (A–E), jawaban pada kunci (`A=⟦img:ID⟧`), dan pengecoh (`Pengecoh: ⟦img:ID⟧; teks`) boleh gambar. Di editor, tempel gambar (Ctrl+V) langsung pada kolom pernyataan atau kunci. Di Word, sisipkan gambar pada paragraf pernyataan, pada jawaban `( … )`, dan pada paragraf `Pengecoh:`.
+- **Naskah ekspor**: bila ada pilihan bergambar, "Pilihan jawaban" dicetak bernomor (1., 2., …) dan lembar kunci menulis `A = pilihan 2`.
+- Setelah menimpa berkas: `npm run build` lalu `php artisan test`.
+
+## Tampilan validator: soal menjodohkan dengan "tali"
+
+Di halaman telaah validator, pernyataan (kiri) dihubungkan dengan jawaban benarnya (kanan) memakai garis lengkung berwarna; pilihan pengecoh (garis putus-putus) tidak bertali. Mendukung teks, rumus, dan gambar. Komponen: `MatchingRopes.vue` (dipakai `ItemSoal` dengan prop `ropes`).
+
+## Perbaikan tampilan & naskah (batch November)
+
+- Soal menjodohkan di sisi guru kini juga memakai "tali"; kunci jawaban menjodohkan ditulis satu baris per pasangan (di layar dan pada lembar kunci naskah), pengecoh di baris terakhir.
+- Template naskah: baris "Pengecoh:" tidak lagi miring.
+- Naskah final: halaman kisi-kisi landscape (lalu rekap), naskah soal dan lembar kunci tetap portrait.
+- Identitas "Kelas / Fase" tidak lagi menulis "Fase Fase E".
+- Karakter animasi login memakai seragam khaki.
+- Admin › Monitoring Paket: ikon tempat sampah per paket menghapus **paket** (bukan butir soal). Paket berstatus Fix atau Terkunci tidak dapat dihapus. Tercatat di log aktivitas.
+
+## Revisi admin: penugasan mengajar
+
+- Form akun guru tidak lagi memuat bagian "Penugasan mengajar".
+- Menu **Penugasan Mengajar** langsung menampilkan semua mapel aktif per kelas beserta fasenya, urut abjad nama mapel. Admin tinggal memilih guru pada tiap baris (bisa lebih dari satu guru; ikon X melepas guru). Tersedia pencarian, filter "Belum ada guru", pilihan semester, dan "Salin dari semester lain" (rollover). Semester arsip hanya-baca.
+
+Pembaruan: setiap mapel-kelas hanya punya **satu guru** (dropdown "Pilih guru…"; memilih guru lain menggantikan yang lama, memilih kosong melepas). Di atas tabel tampil ringkasan: total mapel-kelas, penugasan terisi, dan yang belum ada guru.

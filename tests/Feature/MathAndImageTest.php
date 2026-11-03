@@ -62,4 +62,37 @@ class MathAndImageTest extends TestCase
         $zip->close();
         @unlink($path);
     }
+
+    public function test_bold_italic_underline_roundtrip_through_docx(): void
+    {
+        $path = sys_get_temp_dir().'/bestie-fmt-'.uniqid().'.docx';
+
+        $builder = new DocxBuilder;
+        $builder->runs($builder->richRuns('Biasa <b>tebal</b> <i><u>miring garis</u></i> akhir'));
+        $builder->save($path);
+
+        $zip = new \ZipArchive;
+        $zip->open($path);
+        $xml = (string) $zip->getFromName('word/document.xml');
+        $zip->close();
+        $this->assertStringContainsString('<w:u w:val="single"/>', $xml);
+
+        $block = (new DocxStructureReader)->read($path)[0];
+        @unlink($path);
+
+        $this->assertSame('Biasa tebal miring garis akhir', $block['text']);
+        $this->assertStringContainsString('<b>tebal</b>', $block['rich']);
+        $this->assertStringContainsString('<u>', $block['rich']);
+        $this->assertStringContainsString('<i>', $block['rich']);
+    }
+
+    public function test_matching_key_supports_image_tokens_for_statements_and_choices(): void
+    {
+        $key = "A=⟦img:11⟧; B=Surabaya\nPengecoh: ⟦img:12⟧; Malang";
+        $parsed = \App\Support\MatchingKey::parse($key);
+
+        $this->assertSame('⟦img:11⟧', $parsed['pairs']['A']);
+        $this->assertContains('⟦img:12⟧', $parsed['choices']);
+        $this->assertCount(4, $parsed['choices']);
+    }
 }

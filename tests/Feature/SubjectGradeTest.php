@@ -201,4 +201,39 @@ CSV;
             ->post('/admin/subjects/import', ['file' => UploadedFile::fake()->create('virus.exe', 10)])
             ->assertSessionHasErrors('file');
     }
+
+    public function test_assignment_page_lists_all_subjects_with_phase_in_alphabetical_order(): void
+    {
+        $this->actingAs($this->admin)->get('/admin/assignments')->assertOk()->assertInertia(function ($page): void {
+            $rows = $page->toArray()['props']['rows'];
+            $this->assertNotEmpty($rows);
+            $names = array_map(static fn (array $r): string => mb_strtolower($r['subject']), $rows);
+            $sorted = $names;
+            sort($sorted, SORT_NATURAL);
+            $this->assertSame($sorted, $names);
+            $this->assertArrayHasKey('phase', $rows[0]);
+        });
+    }
+
+    public function test_admin_sets_single_teacher_per_subject_grade_and_can_clear_it(): void
+    {
+        $year = AcademicYear::query()->create(['name' => '2026/2027', 'starts_on' => '2026-07-13', 'ends_on' => '2027-06-26']);
+        $semester = Semester::query()->create([
+            'academic_year_id' => $year->id, 'term' => 'ganjil',
+            'starts_on' => '2026-07-13', 'ends_on' => '2026-12-19', 'status' => SemesterStatus::Aktif,
+        ]);
+        $a = User::factory()->create(['is_active' => true]);
+        $a->assignRole(RoleName::Teacher->value);
+        $b = User::factory()->create(['is_active' => true]);
+        $b->assignRole(RoleName::Teacher->value);
+        $fis = Subject::query()->where('code', 'FIS')->firstOrFail();
+        $payload = ['semester_id' => $semester->id, 'subject_id' => $fis->id, 'grade_level_id' => $this->gradeId('XI')];
+
+        $this->actingAs($this->admin)->post('/admin/assignments/assign', $payload + ['teacher_id' => $a->id])->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post('/admin/assignments/assign', $payload + ['teacher_id' => $b->id]);
+        $this->assertSame([$b->id], TeachingAssignment::query()->pluck('teacher_id')->all());
+
+        $this->actingAs($this->admin)->post('/admin/assignments/assign', $payload + ['teacher_id' => null]);
+        $this->assertSame(0, TeachingAssignment::query()->count());
+    }
 }

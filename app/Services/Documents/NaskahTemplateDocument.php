@@ -71,7 +71,7 @@ final class NaskahTemplateDocument
             $d->runs([['text' => $left.' ('], ['text' => $value, 'color' => self::RED], ['text' => ')']], ['numId' => $l]);
         }
         // Pilihan jawaban = kelima jawaban benar di atas + pengecoh (minimal 1, jadi 6 pilihan untuk 5 pernyataan).
-        $d->paragraph('Pengecoh: Sulawesi Selatan; Kalimantan Timur', ['italic' => true, 'after' => 80]);
+        $d->paragraph('Pengecoh: Sulawesi Selatan; Kalimantan Timur', ['after' => 80]);
 
         // ---- Isian
         $d->paragraph('', ['after' => 0]);

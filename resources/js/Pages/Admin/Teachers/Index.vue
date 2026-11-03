@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Eye, EyeOff, KeyRound, LoaderCircle, Pencil, Plus, Search, Trash2, Upload, UserCheck, UserX, Users, X } from '@lucide/vue';
+import { Eye, EyeOff, KeyRound, LoaderCircle, Pencil, Plus, Search, Trash2, Upload, UserCheck, UserX, Users } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { useConfirm } from '@/Composables/useConfirm';
 import { formatDateTime } from '@/Composables/useFormat';
@@ -52,27 +52,8 @@ const form = useForm<{
     phone: string;
     password: string;
     must_change_password: boolean;
-    assignments: { subject_id: number | ''; grade_level_ids: number[] }[];
-}>({ name: '', email: '', nip: '', phone: '', password: '', must_change_password: true, assignments: [] });
+}>({ name: '', email: '', nip: '', phone: '', password: '', must_change_password: true });
 const showPassword = ref(false);
-
-function subjectOf(id: number | ''): SubjectOption | undefined {
-    return props.subjects.find((s) => s.id === id);
-}
-
-function addAssignment(): void {
-    form.assignments.push({ subject_id: '', grade_level_ids: [] });
-}
-
-function onSubjectChange(row: { subject_id: number | ''; grade_level_ids: number[] }): void {
-    const allowed = subjectOf(row.subject_id)?.grade_ids ?? [];
-    // Bila mapel hanya diajarkan di satu tingkat, langsung centang; selain itu buang tingkat yang tidak berlaku.
-    row.grade_level_ids = allowed.length === 1 ? [...allowed] : row.grade_level_ids.filter((g) => allowed.includes(g));
-}
-
-function toggleGrade(row: { grade_level_ids: number[] }, id: number): void {
-    row.grade_level_ids = row.grade_level_ids.includes(id) ? row.grade_level_ids.filter((g) => g !== id) : [...row.grade_level_ids, id];
-}
 
 function reload(): void {
     router.get('/admin/teachers', { search: search.value || undefined, role: role.value || undefined }, { preserveState: true, replace: true });
@@ -101,7 +82,6 @@ function openEdit(t: Teacher): void {
     form.nip = t.nip ?? '';
     form.phone = t.phone ?? '';
     form.password = '';
-    form.assignments = t.assignments.map((a) => ({ subject_id: a.subject_id, grade_level_ids: [...a.grade_level_ids] }));
     open.value = true;
 }
 
@@ -240,31 +220,6 @@ async function remove(t: Teacher): Promise<void> {
                     <input v-model="form.must_change_password" type="checkbox" class="size-4 accent-primary-600" /> Wajib ganti kata sandi saat login pertama
                 </label>
             </template>
-
-            <fieldset class="rounded-xl border border-line p-3">
-                <legend class="px-1 text-sm font-bold text-ink">Penugasan mengajar</legend>
-                <p v-if="!semester" class="text-xs text-ink-faint">Belum ada semester aktif; penugasan dapat diatur setelah semester diaktifkan.</p>
-                <p v-else-if="semester.archived" class="text-xs text-ink-faint">Semester {{ semester.label }} adalah arsip (hanya-baca).</p>
-                <template v-else>
-                    <p class="mb-2 text-xs text-ink-faint">Semester {{ semester.label }} — sama dengan kolom kode_mapel &amp; tingkat pada impor.</p>
-                    <ul class="space-y-2">
-                        <li v-for="(row, i) in form.assignments" :key="i" class="flex flex-wrap items-center gap-2 rounded-lg bg-surface-2 p-2">
-                            <select v-model="row.subject_id" class="input !w-auto min-w-0 flex-1 !py-1.5 text-sm" :aria-label="`Mapel ${i + 1}`" @change="onSubjectChange(row)">
-                                <option value="" disabled>Pilih mapel…</option>
-                                <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.code }} — {{ s.name }}</option>
-                            </select>
-                            <div class="flex items-center gap-3">
-                                <label v-for="g in grades" :key="g.id" class="flex items-center gap-1 text-sm" :class="subjectOf(row.subject_id)?.grade_ids.includes(g.id) ? 'text-ink' : 'text-ink-faint opacity-50'">
-                                    <input type="checkbox" class="size-4 accent-primary-600" :checked="row.grade_level_ids.includes(g.id)" :disabled="!subjectOf(row.subject_id)?.grade_ids.includes(g.id)" @change="toggleGrade(row, g.id)" />
-                                    {{ g.name }}
-                                </label>
-                            </div>
-                            <button type="button" class="btn-icon" aria-label="Hapus baris mapel" @click="form.assignments.splice(i, 1)"><X class="size-4" /></button>
-                        </li>
-                    </ul>
-                    <button type="button" class="btn-secondary btn-sm mt-2" @click="addAssignment"><Plus class="size-3.5" /> Tambah mapel</button>
-                </template>
-            </fieldset>
         </form>
         <template #footer>
             <button type="button" class="btn-secondary" @click="open = false">Batal</button>

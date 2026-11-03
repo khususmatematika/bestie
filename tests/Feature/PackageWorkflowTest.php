@@ -422,4 +422,18 @@ class PackageWorkflowTest extends TestCase
         $second = app(RequestFinalExport::class)->handle($package);
         $this->assertNotSame($first->id, $second->id);
     }
+
+    public function test_admin_can_delete_package_but_not_fix_or_locked_ones(): void
+    {
+        $package = $this->submitted();
+
+        $this->actingAs($this->admin)->delete('/admin/packages/'.$package->id)->assertRedirect();
+        $this->assertNull(QuestionPackage::query()->find($package->id));
+
+        $fixed = $this->package();
+        $fixed->forceFill(['status' => PackageStatus::Fix])->save();
+
+        $this->actingAs($this->admin)->delete('/admin/packages/'.$fixed->id);
+        $this->assertNotNull(QuestionPackage::query()->find($fixed->id));
+    }
 }

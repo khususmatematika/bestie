@@ -8,18 +8,23 @@ import MathInline from './MathInline.vue';
  */
 const props = defineProps<{ text: string; images?: Record<string, string>; alt?: string }>();
 
-type Part = { kind: 'text'; value: string } | { kind: 'math'; value: string } | { kind: 'img'; value: string };
+type Part = { kind: 'text'; value: string; b?: boolean; i?: boolean; u?: boolean } | { kind: 'math'; value: string } | { kind: 'img'; value: string };
 
 const parts = computed<Part[]>(() => {
     const out: Part[] = [];
-    const re = /\\\(([\s\S]+?)\\\)|⟦img:(\d+)⟧/g;
+    const re = /\\\(([\s\S]+?)\\\)|⟦img:(\d+)⟧|<(\/?)([biu])>/gi;
     let last = 0;
     let m: RegExpExecArray | null;
     const src = props.text ?? '';
+    const fmt = { b: false, i: false, u: false };
+    const pushText = (value: string) => {
+        if (value !== '') out.push({ kind: 'text', value, b: fmt.b, i: fmt.i, u: fmt.u });
+    };
 
     while ((m = re.exec(src)) !== null) {
-        if (m.index > last) out.push({ kind: 'text', value: src.slice(last, m.index) });
+        pushText(src.slice(last, m.index));
         if (m[1] !== undefined) out.push({ kind: 'math', value: m[1] });
+        else if (m[4] !== undefined) fmt[m[4].toLowerCase() as 'b' | 'i' | 'u'] = m[3] !== '/';
         else {
             const url = props.images?.[m[2]];
             if (url) out.push({ kind: 'img', value: url });
@@ -27,7 +32,7 @@ const parts = computed<Part[]>(() => {
         last = m.index + m[0].length;
     }
 
-    if (last < src.length) out.push({ kind: 'text', value: src.slice(last) });
+    pushText(src.slice(last));
 
     return out;
 });
@@ -38,7 +43,7 @@ const parts = computed<Part[]>(() => {
         <template v-for="(p, i) in parts" :key="i">
             <MathInline v-if="p.kind === 'math'" :latex="p.value" />
             <img v-else-if="p.kind === 'img'" :src="p.value" :alt="alt ?? 'Gambar pada soal'" class="mx-1 my-1 inline-block max-h-72 max-w-full rounded border border-line bg-white align-middle" loading="lazy" />
-            <template v-else>{{ p.value }}</template>
+            <span v-else :class="[p.b && 'font-bold', p.i && 'italic', p.u && 'underline']">{{ p.value }}</span>
         </template>
     </span>
 </template>

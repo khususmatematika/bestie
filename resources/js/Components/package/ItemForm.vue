@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Paperclip } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import MathText from '@/Components/package/MathText.vue';
 import FormField from '@/Components/ui/FormField.vue';
 import type { ItemDetail, TypeOption } from '@/types';
@@ -77,7 +77,64 @@ async function onPaste(e: ClipboardEvent, field: string): Promise<void> {
 
     if (field === 'stem') form.stem = apply(form.stem);
     else if (field === 'scoring_guide') form.scoring_guide = apply(form.scoring_guide);
+    else if (field === 'answer_key') form.answer_key = apply(form.answer_key);
     else form.options[field] = apply(form.options[field] ?? '');
+}
+
+/** Format teks: bungkus pilihan dengan <b>, <i>, atau <u> (Ctrl+B / Ctrl+I / Ctrl+U atau tombol di atas kolom). */
+function getField(name: string): string {
+    if (name === 'stem') return form.stem;
+    if (name === 'scoring_guide') return form.scoring_guide;
+    if (name === 'answer_key') return form.answer_key;
+
+    return form.options[name] ?? '';
+}
+
+function setField(name: string, value: string): void {
+    if (name === 'stem') form.stem = value;
+    else if (name === 'scoring_guide') form.scoring_guide = value;
+    else if (name === 'answer_key') form.answer_key = value;
+    else form.options[name] = value;
+}
+
+const activeField = ref<string | null>(null);
+
+function trackFocus(e: FocusEvent): void {
+    const name = (e.target as HTMLElement | null)?.getAttribute?.('data-fmt');
+    if (name) activeField.value = name;
+}
+
+function applyFormat(tag: 'b' | 'i' | 'u'): void {
+    const name = activeField.value;
+    const el = name ? (document.querySelector(`[data-fmt="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | null) : null;
+    if (!name || !el) return;
+
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? start;
+    const value = getField(name);
+    const open = `<${tag}>`;
+    const close = `</${tag}>`;
+    const picked = value.slice(start, end);
+    const already = picked.startsWith(open) && picked.endsWith(close);
+    const inner = already ? picked.slice(open.length, picked.length - close.length) : picked;
+    const next = already ? inner : open + picked + close;
+
+    setField(name, value.slice(0, start) + next + value.slice(end));
+    nextTick(() => {
+        el.focus();
+        const caret = picked === '' && !already ? start + open.length : start;
+        el.setSelectionRange(caret, picked === '' && !already ? caret : start + next.length);
+    });
+}
+
+function onFormatKey(e: KeyboardEvent): void {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    const k = e.key.toLowerCase();
+    if (k !== 'b' && k !== 'i' && k !== 'u') return;
+    if (!(e.target as HTMLElement | null)?.getAttribute?.('data-fmt')) return;
+    e.preventDefault();
+    activeField.value = (e.target as HTMLElement).getAttribute('data-fmt');
+    applyFormat(k);
 }
 
 const form = useForm({
@@ -146,7 +203,7 @@ function pickFile(event: Event): void {
 </script>
 
 <template>
-    <form :id="`item-form-${item.id}`" class="space-y-5" @submit.prevent="submit">
+    <form :id="`item-form-${item.id}`" class="space-y-5" @submit.prevent="submit" @focusin="trackFocus" @keydown="onFormatKey">
         <p v-if="mode === 'revise' && note" class="rounded-xl bg-danger-50 p-3 text-sm text-danger-700 dark:bg-danger-500/10 dark:text-danger-500" role="note">
             <span class="font-bold">Catatan validator:</span> {{ note }}
         </p>
@@ -185,10 +242,16 @@ function pickFile(event: Event): void {
 
         <fieldset class="space-y-4">
             <legend class="text-sm font-bold text-ink">Soal</legend>
-            <FormField v-slot="{ id, invalid }" label="Teks soal" :error="form.errors.stem" hint="Gambar: salin (Ctrl+V) lalu tempel langsung di kolom ini, termasuk pada pilihan jawaban. Rumus ditulis di antara \\( dan \\) dengan sintaks LaTeX, mis. \\(\\frac{15}{56}\\). Penanda ⟦img:…⟧ adalah gambar; hapus penanda untuk membuang gambar dari teks." required>
-                <textarea :id="id" v-model="form.stem" rows="5" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'stem')" />
+            <div class="flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="Format teks">
+                <button type="button" class="btn-secondary px-2.5 py-1 text-sm font-bold" title="Tebal (Ctrl+B)" @mousedown.prevent @click="applyFormat('b')">B</button>
+                <button type="button" class="btn-secondary px-2.5 py-1 text-sm italic" title="Miring (Ctrl+I)" @mousedown.prevent @click="applyFormat('i')">I</button>
+                <button type="button" class="btn-secondary px-2.5 py-1 text-sm underline" title="Garis bawah (Ctrl+U)" @mousedown.prevent @click="applyFormat('u')">U</button>
+                <span class="text-xs text-ink-faint">Blok teks pada kolom soal, pilihan, atau kunci, lalu klik tombol atau tekan Ctrl+B / I / U.</span>
+            </div>
+            <FormField v-slot="{ id, invalid }" label="Teks soal" :error="form.errors.stem" hint="Gambar: salin (Ctrl+V) lalu tempel langsung di kolom ini, termasuk pada pilihan jawaban, pernyataan menjodohkan, dan kunci/pengecoh. Tebal/miring/garis bawah: blok teks lalu Ctrl+B / I / U. Rumus ditulis di antara \\( dan \\) dengan sintaks LaTeX, mis. \\(\\frac{15}{56}\\). Penanda ⟦img:…⟧ adalah gambar; hapus penanda untuk membuang gambar dari teks." required>
+                <textarea :id="id" v-model="form.stem" data-fmt="stem" rows="5" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'stem')" />
             </FormField>
-            <div v-if="/\\\(|⟦img:/.test(form.stem)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3">
+            <div v-if="/\\\(|⟦img:|<[biu]>/.test(form.stem)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Pratinjau</p>
                 <p class="mt-1 font-serif text-ink"><MathText :text="form.stem" :images="imageMap" /></p>
             </div>
@@ -197,22 +260,30 @@ function pickFile(event: Event): void {
                 <p class="label">{{ form.type === 'benar_salah' ? 'Pernyataan (opsional, bila ada beberapa pernyataan Benar/Salah)' : form.type === 'menjodohkan' ? 'Pernyataan' : 'Pilihan jawaban' }}</p>
                 <div v-for="letter in LETTERS" :key="letter" class="flex items-center gap-2">
                     <span class="w-6 text-center text-sm font-bold text-primary-700 dark:text-primary-300">{{ letter }}</span>
-                    <input v-model="form.options[letter]" class="input font-serif" :aria-label="`Pilihan ${letter}`" @paste="onPaste($event, letter)" />
+                    <input v-model="form.options[letter]" :data-fmt="letter" class="input font-serif" :aria-label="`Pilihan ${letter}`" @paste="onPaste($event, letter)" />
                 </div>
                 <p v-if="form.errors.options" class="error-text" role="alert">{{ form.errors.options }}</p>
+                <div v-if="LETTERS.some((l) => /⟦img:|<[biu]>|\\\(/.test(form.options[l] ?? ''))" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink">
+                    <template v-for="letter in LETTERS" :key="letter">
+                        <p v-if="(form.options[letter] ?? '') !== ''" class="font-serif"><b class="mr-1 font-sans">{{ letter }}.</b><MathText :text="form.options[letter]" :images="imageMap" /></p>
+                    </template>
+                </div>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" :label="hasOptions ? 'Kunci jawaban' : 'Kunci / jawaban singkat'" :error="form.errors.answer_key" :hint="keyHint" :required="hasOptions">
-                    <textarea v-if="form.type === 'menjodohkan'" :id="id" v-model="form.answer_key" rows="3" class="input" :class="{ 'input-error': invalid }" />
+                    <textarea v-if="form.type === 'menjodohkan'" :id="id" v-model="form.answer_key" data-fmt="answer_key" rows="3" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'answer_key')" />
                     <input v-else :id="id" v-model="form.answer_key" class="input" :class="{ 'input-error': invalid }" />
                 </FormField>
+                <div v-if="form.type === 'menjodohkan' && /⟦img:|<[biu]>/.test(form.answer_key)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink sm:col-span-2">
+                    <MathText :text="form.answer_key" :images="imageMap" />
+                </div>
                 <p v-if="matching" class="self-end rounded-xl px-3 py-2 text-xs font-semibold" :class="matching.choices > matching.statements ? 'bg-success-50 text-success-700 dark:bg-success-500/10' : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10'" role="status">
                     {{ matching.statements }} pernyataan · {{ matching.choices }} pilihan jawaban<template v-if="matching.choices <= matching.statements"> — tambahkan minimal 1 pengecoh agar pilihan lebih banyak daripada pernyataan.</template>
                 </p>
             </div>
             <FormField v-slot="{ id, invalid }" label="Pedoman penskoran" :error="form.errors.scoring_guide" :hint="hasOptions ? 'Opsional untuk pilihan ganda.' : 'Wajib untuk uraian/isian bila kunci kosong.'">
-                <textarea :id="id" v-model="form.scoring_guide" rows="3" class="input" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'scoring_guide')" />
+                <textarea :id="id" v-model="form.scoring_guide" data-fmt="scoring_guide" rows="3" class="input" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'scoring_guide')" />
             </FormField>
         </fieldset>
 

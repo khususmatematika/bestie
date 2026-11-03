@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Package\ChangePackageValidator;
+use App\Actions\Package\DeletePackageAsAdmin;
 use App\Actions\Package\LockPackage;
 use App\Enums\PackageStatus;
 use App\Enums\RoleName;
@@ -17,6 +18,7 @@ use App\Support\CurrentPeriod;
 use App\Support\PackagePresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -78,5 +80,12 @@ class PackageController extends Controller
         $action->handle($package, $request->user(), $request->integer('validator_id'));
 
         return back()->with('success', 'Validator paket diganti.');
+    }
+
+    public function destroy(Request $request, QuestionPackage $package, DeletePackageAsAdmin $action): RedirectResponse
+    {
+        $action->handle($package, $request->user());
+
+        return back()->with('success', 'Paket “'.$package->title.'” dihapus.');
     }
 }

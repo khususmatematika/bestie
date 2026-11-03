@@ -70,7 +70,7 @@ final class ExamDocxParser
         $lastOptionList = null;
 
         foreach ($blocks as $block) {
-            $text = $block['text'];
+            $text = $block['rich'] ?? $block['text'];
             $bare = trim(preg_replace('/⟦IMG:[^⟧]*⟧/u', '', $text) ?? $text);
             $list = $block['list'];
 
@@ -110,8 +110,17 @@ final class ExamDocxParser
             }
 
             // Menjodohkan: baris "Pengecoh: a; b" = pilihan jawaban tambahan yang tidak dipakai pernyataan mana pun.
-            if ($current['type'] === QuestionType::Menjodohkan && preg_match('/^\s*(?:pilihan\s+)?pengecoh\s*[:：]\s*(.+)$/iu', $text, $dm) === 1) {
-                $current['distractors'] = [...$current['distractors'], ...array_values(array_filter(array_map('trim', explode(';', $dm[1])), static fn (string $d): bool => $d !== ''))];
+            if ($current['type'] === QuestionType::Menjodohkan && preg_match('/^\s*((?:<[biu]>)*)\s*(?:pilihan\s+)?pengecoh\s*(?:<\/[biu]>)*\s*[:：]\s*(?:<\/[biu]>)*\s*(.+)$/iu', $text, $dm) === 1) {
+                // Tag pembuka sebelum kata "Pengecoh" (mis. seluruh baris miring) ikut ditutup di akhir baris: buang penutupnya.
+                $tail = $dm[2];
+                preg_match_all('/<([biu])>/i', $dm[1], $open);
+
+                foreach (array_reverse($open[1]) as $t) {
+                    $tail = preg_replace('/\s*<\/'.$t.'>\s*$/i', '', $tail) ?? $tail;
+                }
+
+                $current['distractors'] = [...$current['distractors'], ...array_values(array_filter(array_map(fn (string $d): string => $this->balanceTags(trim($d)), explode(';', $tail)), static fn (string $d): bool => $d !== ''))];
+                $current['images'] = [...$current['images'], ...$block['images']];
 
                 continue;
             }
@@ -214,7 +223,7 @@ final class ExamDocxParser
         return [
             'number' => $number,
             'type' => $section,
-            'stem' => [trim(implode(' ', array_map(static fn (string $p): string => '⟦IMG:'.$p.'⟧', $pendingImages)).' '.$block['text'])],
+            'stem' => [trim(implode(' ', array_map(static fn (string $p): string => '⟦IMG:'.$p.'⟧', $pendingImages)).' '.($block['rich'] ?? $block['text']))],
             'stem_blocks' => [$block],
             'options' => [],
             'red' => [],
@@ -269,7 +278,7 @@ final class ExamDocxParser
 
                     foreach ($options as $letter => $text) {
                         $answer = $this->trueFalseFromBlocks([$q['option_blocks'][$letter] ?? ['runs' => []]]);
-                        $options[$letter] = trim(preg_replace('/\s*\(\s*B\s*\/\s*S\s*\)\s*\.?\s*$/u', '', $text) ?? $text);
+                        $options[$letter] = trim(self::stripTfMarker($text));
 
                         if ($answer === '') {
                             $warnings[] = "Nomor {$number}: pernyataan {$letter} belum ditandai (warnai huruf B atau S pada \"(B/S)\" dengan merah).";
@@ -299,8 +308,8 @@ final class ExamDocxParser
                 $pairs = [];
 
                 foreach ($options as $letter => $text) {
-                    if (preg_match('/^(.*?)\s*\(([^()]+)\)\s*$/us', $text, $m) === 1) {
-                        $options[$letter] = trim($m[1]);
+                    if (preg_match('/^(.*?)\s*\(([^()]+)\)\s*((?:<\/[biu]>)*)\s*$/us', $text, $m) === 1) {
+                        $options[$letter] = trim($m[1]).$m[3];
                         $pairs[$letter] = trim($m[2]);
                     }
                 }
@@ -328,6 +337,17 @@ final class ExamDocxParser
         ];
     }
 
+
+    /**
+     * Membuang penanda "(B/S)" di akhir teks (boleh diapit penanda format <b>/<i>/<u>), mempertahankan penutup format.
+     */
+    private static function stripTfMarker(string $text): string
+    {
+        $t = '(?:<\/?[biu]>)*';
+
+        return preg_replace('/\s*\(\s*'.$t.'B\s*'.$t.'\/\s*'.$t.'S\s*'.$t.'\)\s*\.?\s*((?:<\/[biu]>)*)\s*$/u', '$1', $text) ?? $text;
+    }
+
     /**
      * @param  array<string, mixed>  $q
      * @return array{0: string, 1: string}  teks soal tanpa penanda "(B/S)" dan kuncinya (B/S)
@@ -335,9 +355,7 @@ final class ExamDocxParser
     private function trueFalse(array $q, string $stem): array
     {
         $key = $this->trueFalseFromBlocks($q['stem_blocks']);
-        $clean = preg_replace('/\s*\(\s*B\s*\/\s*S\s*\)\s*\.?\s*$/u', '', $stem) ?? $stem;
-
-        return [trim($clean), $key];
+        return [trim(self::stripTfMarker($stem)), $key];
     }
 
     /**
@@ -425,5 +443,22 @@ final class ExamDocxParser
         }
 
         return false;
+    }
+
+    /** Buang tag <b>/<i>/<u> yang tidak berpasangan (mis. pemisah ";" yang dicetak miring terpecah dua). */
+    private function balanceTags(string $text): string
+    {
+        foreach (['b', 'i', 'u'] as $t) {
+            $open = substr_count(strtolower($text), "<$t>");
+            $close = substr_count(strtolower($text), "</$t>");
+
+            if ($open === $close && ($open === 0 || stripos($text, "<$t>") < stripos($text, "</$t>"))) {
+                continue;
+            }
+
+            $text = (string) preg_replace("#</?$t>#i", '', $text);
+        }
+
+        return trim($text);
     }
 }

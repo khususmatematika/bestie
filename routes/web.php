@@ -166,6 +166,7 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
         // Monitoring paket
         Route::get('/packages', [AdminPackageController::class, 'index'])->name('packages.index');
         Route::get('/packages/download', PackageDownloadController::class)->middleware('throttle:6,1')->name('packages.download');
+        Route::delete('/packages/{package}', [AdminPackageController::class, 'destroy'])->name('packages.destroy');
         Route::post('/packages/{package}/lock', [AdminPackageController::class, 'lock'])->name('packages.lock');
         Route::post('/packages/{package}/change-validator', [AdminPackageController::class, 'changeValidator'])->name('packages.change-validator');
 
@@ -180,6 +181,7 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
         Route::put('/validators/{teacher}/scopes', [ValidatorController::class, 'scopes'])->name('validators.scopes');
 
         // Penugasan guru-mapel-tingkat
+        Route::post('/assignments/assign', [AssignmentController::class, 'assign'])->name('assignments.assign');
         Route::post('/assignments/rollover', [AssignmentController::class, 'rollover'])->name('assignments.rollover');
         Route::resource('assignments', AssignmentController::class)->only(['index', 'store', 'destroy']);
 

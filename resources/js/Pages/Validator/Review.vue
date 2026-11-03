@@ -219,7 +219,7 @@ const position = computed(() => props.nav.findIndex((n) => n.number === props.it
                             <h3 class="text-xs font-bold uppercase tracking-wide text-ink-faint">Soal</h3>
                             <TranslateButton :item="item" />
                         </div>
-                        <ItemSoal :item="item" />
+                        <ItemSoal :item="item" ropes />
                     </div>
                 </div>
             </section>

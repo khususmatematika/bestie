@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Archive, ChevronDown, Download, FolderOpen, Lock, LoaderCircle, Search, ShieldCheck, UserRoundCog } from '@lucide/vue';
+import { Archive, ChevronDown, Download, FolderOpen, Lock, LoaderCircle, Search, ShieldCheck, Trash2, UserRoundCog } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { formatDateTime } from '@/Composables/useFormat';
 import { useConfirm } from '@/Composables/useConfirm';
@@ -92,6 +92,16 @@ async function lock(p: PackageSummary): Promise<void> {
     if (ok) router.post(`/admin/packages/${p.id}/lock`, {}, { preserveScroll: true });
 }
 
+async function removePackage(p: PackageSummary): Promise<void> {
+    const ok = await confirm({
+        title: `Hapus paket “${p.title}”?`,
+        message: `Paket milik ${p.teacher} beserta seluruh soalnya akan dihapus. Paket yang sudah Fix atau terkunci tidak dapat dihapus.`,
+        confirmLabel: 'Hapus paket',
+        danger: true,
+    });
+    if (ok) router.delete(`/admin/packages/${p.id}`, { preserveScroll: true });
+}
+
 const changing = ref<PackageSummary | null>(null);
 const form = useForm<{ validator_id: number | '' }>({ validator_id: '' });
 
@@ -179,6 +189,7 @@ function submitChange(): void {
                         <td>
                             <div class="flex justify-end gap-1">
                                 <a :href="`/packages/${p.id}/downloads/recap?format=docx`" class="btn-icon" :aria-label="`Unduh rekap ${p.title}`" title="Rekap validasi siap cetak (DOCX)"><Download class="size-4" /></a>
+                                <button v-if="p.status !== 'fix' && p.status !== 'terkunci'" type="button" class="btn-icon hover:!text-danger-600" :aria-label="`Hapus paket ${p.title}`" title="Hapus paket" @click="removePackage(p)"><Trash2 class="size-4" /></button>
                                 <button v-if="p.validator && p.status !== 'terkunci'" type="button" class="btn-icon" :aria-label="`Ganti validator ${p.title}`" @click="openChange(p)"><UserRoundCog class="size-4" /></button>
                                 <button v-if="p.status === 'fix'" type="button" class="btn-secondary btn-sm" @click="lock(p)"><Lock class="size-3.5" /> Kunci</button>
                             </div>

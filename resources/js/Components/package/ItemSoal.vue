@@ -2,8 +2,9 @@
 import { computed } from 'vue';
 import type { ItemDetail } from '@/types';
 import MathText from './MathText.vue';
+import MatchingRopes from './MatchingRopes.vue';
 
-const props = defineProps<{ item: ItemDetail }>();
+const props = withDefaults(defineProps<{ item: ItemDetail; ropes?: boolean }>(), { ropes: false });
 
 const options = computed(() => Object.entries(props.item.options));
 const matching = computed(() => {
@@ -33,6 +34,11 @@ const tfKey = computed<Record<string, string>>(() => {
     return out;
 });
 const keyText = computed(() => {
+    if (matching.value) {
+        const lines = Object.entries(matching.value.pairs).map(([l, v]) => `${l} = ${v}`);
+        if (matching.value.distractors.length) lines.push(`Pengecoh: ${matching.value.distractors.join('; ')}`);
+        if (lines.length) return lines.join('\n');
+    }
     if (props.item.type !== 'benar_salah') return props.item.answer_key;
     if (Object.keys(tfKey.value).length) return Object.entries(tfKey.value).map(([l, v]) => `${l} = ${v === 'B' ? 'Benar' : 'Salah'}`).join('\n');
     return ({ B: 'Benar', S: 'Salah' } as Record<string, string>)[props.item.answer_key] ?? props.item.answer_key;
@@ -52,7 +58,9 @@ const keyText = computed(() => {
             <img v-for="(src, i) in item.images" :key="src" :src="src" :alt="`Gambar soal nomor ${item.number}, ${i + 1}`" class="max-h-72 max-w-full rounded-lg border border-line bg-white object-contain" loading="lazy" />
         </div>
 
-        <ol v-if="options.length" class="space-y-2">
+        <MatchingRopes v-if="ropes && matching && matching.choices.length" :statements="options.filter(([, t]) => String(t).trim() !== '') as [string, string][]" :choices="matching.choices" :pairs="matching.pairs" :distractors="matching.distractors" :images="item.image_map" />
+
+        <ol v-if="options.length && !(ropes && matching && matching.choices.length)" class="space-y-2">
             <li
                 v-for="[letter, text] in options"
                 :key="letter"
@@ -66,7 +74,7 @@ const keyText = computed(() => {
         </ol>
 
         <!-- Menjodohkan: pilihan jawaban = pasangan benar + pengecoh -->
-        <div v-if="matching && matching.choices.length" class="rounded-xl border border-line p-3">
+        <div v-if="matching && matching.choices.length && !ropes" class="rounded-xl border border-line p-3">
             <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Pilihan jawaban ({{ matching.choices.length }}, termasuk {{ matching.distractors.length }} pengecoh)</p>
             <ul class="mt-2 flex flex-wrap gap-2">
                 <li
@@ -75,7 +83,7 @@ const keyText = computed(() => {
                     class="rounded-lg border px-2.5 py-1 font-serif text-sm"
                     :class="matching.distractors.includes(c) ? 'border-dashed border-warning-500/60 bg-warning-50 text-ink dark:bg-warning-500/10' : 'border-success-500/60 bg-success-50 text-ink dark:bg-success-500/10'"
                 >
-                    {{ c }}<span v-if="matching.distractors.includes(c)" class="ml-1 font-sans text-[10px] font-bold uppercase text-warning-700 dark:text-warning-500">pengecoh</span>
+                    <MathText :text="c" :images="item.image_map" alt="Gambar pilihan jawaban" /><span v-if="matching.distractors.includes(c)" class="ml-1 font-sans text-[10px] font-bold uppercase text-warning-700 dark:text-warning-500">pengecoh</span>
                 </li>
             </ul>
         </div>
@@ -83,11 +91,11 @@ const keyText = computed(() => {
         <div class="grid gap-3 sm:grid-cols-2">
             <div v-if="item.answer_key" class="rounded-xl bg-surface-2 p-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Kunci jawaban</p>
-                <p class="mt-0.5 whitespace-pre-line text-sm font-semibold text-ink">{{ keyText }}</p>
+                <p class="mt-0.5 whitespace-pre-line text-sm font-semibold text-ink"><MathText :text="keyText" :images="item.image_map" alt="Gambar kunci jawaban" /></p>
             </div>
             <div v-if="item.scoring_guide" class="rounded-xl bg-surface-2 p-3 sm:col-span-2">
                 <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Pedoman penskoran</p>
-                <p class="mt-0.5 whitespace-pre-line text-sm text-ink">{{ item.scoring_guide }}</p>
+                <p class="mt-0.5 whitespace-pre-line text-sm text-ink"><MathText :text="item.scoring_guide" :images="item.image_map" /></p>
             </div>
         </div>
     </div>

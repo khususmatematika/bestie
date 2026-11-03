@@ -272,19 +272,28 @@ final class DocxBuilder
     public function richRuns(string $text, array $base = [], ?callable $images = null): array
     {
         $runs = [];
+        $fmt = ['bold' => false, 'italic' => false, 'underline' => false];
         $last = 0;
 
-        preg_match_all('/\\\\\((.+?)\\\\\)|⟦img:(\d+)⟧/us', $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        // Penanda format <b> <i> <u> (dan penutupnya) memengaruhi run sesudahnya; rumus & gambar tetap dikenali.
+        preg_match_all('/\\\\\((.+?)\\\\\)|⟦img:(\d+)⟧|<(\/?)([biu])>/ius', $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+
+        $style = static function (array $base, array $fmt): array {
+            return array_merge($base, array_filter(['bold' => $fmt['bold'] ?: ($base['bold'] ?? false), 'italic' => $fmt['italic'] ?: ($base['italic'] ?? false), 'underline' => $fmt['underline']], static fn ($v) => $v !== false));
+        };
 
         foreach ($matches as $m) {
             $offset = $m[0][1];
 
             if ($offset > $last) {
-                $runs[] = ['text' => substr($text, $last, $offset - $last)] + $base;
+                $runs[] = ['text' => substr($text, $last, $offset - $last)] + $style($base, $fmt);
             }
 
-            if (($m[1][1] ?? -1) >= 0 && $m[1][0] !== '') {
-                $runs[] = ['math' => $m[1][0]] + $base;
+            if (isset($m[4]) && $m[4][1] >= 0 && $m[4][0] !== '') {
+                $key = ['b' => 'bold', 'i' => 'italic', 'u' => 'underline'][mb_strtolower($m[4][0])];
+                $fmt[$key] = $m[3][0] !== '/';
+            } elseif (($m[1][1] ?? -1) >= 0 && $m[1][0] !== '') {
+                $runs[] = ['math' => $m[1][0]] + $style($base, $fmt);
             } elseif (isset($m[2]) && $m[2][1] >= 0 && $images !== null) {
                 $file = $images((int) $m[2][0]);
 
@@ -297,7 +306,7 @@ final class DocxBuilder
         }
 
         if ($last < strlen($text)) {
-            $runs[] = ['text' => substr($text, $last)] + $base;
+            $runs[] = ['text' => substr($text, $last)] + $style($base, $fmt);
         }
 
         return $runs === [] ? [['text' => ''] + $base] : $runs;
@@ -457,11 +466,12 @@ final class DocxBuilder
         }
 
         if (isset($r['image'])) {
-            return $this->drawing((string) $r['image'], (string) ($r['ext'] ?? 'png'), 7.0, 5.5);
+            return $this->drawing((string) $r['image'], (string) ($r['ext'] ?? 'png'), (float) ($r['w'] ?? 7.0), (float) ($r['h'] ?? 5.5));
         }
 
         $props = ($r['bold'] ?? false ? '<w:b/>' : '')
             .($r['italic'] ?? false ? '<w:i/>' : '')
+            .($r['underline'] ?? false ? '<w:u w:val="single"/>' : '')
             .(isset($r['color']) ? '<w:color w:val="'.preg_replace('/[^0-9A-Fa-f]/', '', $r['color']).'"/>' : '')
             .(isset($r['size']) ? '<w:sz w:val="'.((int) $r['size'] * 2).'"/><w:szCs w:val="'.((int) $r['size'] * 2).'"/>' : '');
 

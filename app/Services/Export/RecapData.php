@@ -63,7 +63,7 @@ final class RecapData
 
         $identity = [
             ['Mata pelajaran', $package->subject->name],
-            ['Kelas / Fase', 'Kelas '.$package->gradeLevel->name.($phase ? ' / Fase '.$phase : '')],
+            ['Kelas / Fase', 'Kelas '.$package->gradeLevel->name.($phase ? ' / '.(stripos($phase, 'fase') === 0 ? $phase : 'Fase '.$phase) : '')],
             ['Periode asesmen', $period->name],
             ['Tahun pelajaran', $period->semester->year->name.' — Semester '.$period->semester->term->label()],
             ['Penyusun soal', $package->teacher->name],
