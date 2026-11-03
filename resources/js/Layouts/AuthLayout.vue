@@ -131,7 +131,8 @@ const sample = [
                 </header>
 
                 <div class="pull-stage relative pl-[4.6rem] sm:pl-0">
-                    <PullCharacter class="pull-char absolute bottom-14 right-[calc(100%-4.6rem)] z-10 h-[4.4rem] w-auto max-[370px]:hidden sm:right-full sm:h-36 lg:h-48 xl:h-56" />
+                    <PullCharacter mode="pull" class="pull-char absolute bottom-14 right-[calc(100%-4.6rem)] z-10 h-[4.4rem] w-auto max-[370px]:hidden sm:right-full sm:h-36 lg:h-48 xl:h-56" />
+                    <PullCharacter mode="push" class="push-char absolute bottom-14 left-full z-10 hidden h-36 w-auto md:block lg:h-48 xl:h-56" />
                     <div class="pull-card rounded-3xl border border-white/40 bg-surface/95 p-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:p-8 dark:border-white/10">
                         <slot />
                     </div>

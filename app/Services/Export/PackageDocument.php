@@ -97,7 +97,14 @@ final class PackageDocument
         }
 
         if ($final && $format['show_blueprint']) {
-            $doc->startLandscape()->paragraph('KISI-KISI SOAL', ['bold' => true, 'align' => 'center', 'after' => 200]);
+            $doc->startLandscape()->paragraph(mb_strtoupper('KISI-KISI SOAL '.$package->assessmentPeriod->name), ['bold' => true, 'align' => 'center', 'after' => 160]);
+            $doc->table([
+                ['Mata pelajaran', $package->subject->name],
+                ['Kelas / Fase', $this->classPhase($package)],
+                ['Tahun pelajaran', $package->assessmentPeriod->semester->year->name.' — Semester '.$package->assessmentPeriod->semester->term->label()],
+                ['Penyusun soal', $package->teacher->name.($package->teacher->nip ? ' (NIP. '.$package->teacher->nip.')' : '')],
+            ], [22, 78], false);
+            $doc->paragraph('', ['after' => 100]);
             $doc->table(
                 array_merge([['No', 'Capaian Pembelajaran', 'Materi', 'Indikator soal', 'Level', 'Bentuk']], $items->map(static fn (QuestionItem $i): array => [
                     (string) $i->number,
@@ -109,6 +116,15 @@ final class PackageDocument
                 ])->all()),
                 [5, 26, 18, 31, 7, 13],
             );
+
+            // Tanda tangan penulis soal.
+            $doc->paragraph('', ['after' => 120]);
+            $doc->paragraph('Penyusun soal,', ['size' => 10, 'align' => 'right', 'after' => 700]);
+            $doc->paragraph($package->teacher->name, ['size' => 10, 'bold' => true, 'align' => 'right', 'after' => 0]);
+
+            if ($package->teacher->nip) {
+                $doc->paragraph('NIP. '.$package->teacher->nip, ['size' => 9, 'align' => 'right', 'after' => 0]);
+            }
         }
 
         if ($final && $format['show_recap']) {
@@ -117,6 +133,14 @@ final class PackageDocument
         }
 
         $doc->save($path);
+    }
+
+    private function classPhase(QuestionPackage $package): string
+    {
+        $category = $package->subject->category;
+        $phase = $category !== null ? $package->gradeLevel->phaseFor($category) : $package->gradeLevel->phase;
+
+        return 'Kelas '.$package->gradeLevel->name.($phase ? ' / '.(stripos($phase, 'fase') === 0 ? $phase : 'Fase '.$phase) : '');
     }
 
     private function keyText(QuestionItem $item): string
@@ -164,14 +188,12 @@ final class PackageDocument
         KopHeader::apply($doc, $format);
 
         $period = $package->assessmentPeriod;
-        $category = $package->subject->category;
-        $phase = $category !== null ? $package->gradeLevel->phaseFor($category) : $package->gradeLevel->phase;
 
         $doc->paragraph(mb_strtoupper(($final ? 'NASKAH SOAL ' : 'SOAL TERVALIDASI ').$period->name), ['bold' => true, 'align' => 'center', 'after' => 160]);
 
         $rows = [
             ['Mata pelajaran', $package->subject->name],
-            ['Kelas / Fase', 'Kelas '.$package->gradeLevel->name.($phase ? ' / '.(stripos($phase, 'fase') === 0 ? $phase : 'Fase '.$phase) : '')],
+            ['Kelas / Fase', $this->classPhase($package)],
             ['Tahun pelajaran', $period->semester->year->name.' — Semester '.$period->semester->term->label()],
             ['Penyusun', $package->teacher->name],
             ['Validator', ($package->validator?->name ?? '—').($package->is_self_validated ? ' (Divalidasi Mandiri)' : '')],

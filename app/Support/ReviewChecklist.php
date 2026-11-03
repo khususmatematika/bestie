@@ -20,7 +20,7 @@ final class ReviewChecklist
         'bias' => 'Bebas bias/SARA dan konten sensitif',
         'stimulus' => 'Stimulus ada dan dibutuhkan saat mengerjakan soal',
         'homogen' => 'Pilihan jawaban homogen',
-        'soal_dibutuhkan' => 'Soal dibutuhkan saat mencari jawaban',
+        'soal_dibutuhkan' => 'Soal berfungsi',
     ];
 
     /** Judul kolom ringkas untuk rekap (urutan sama dengan ITEMS). @var array<string, string> */
@@ -34,7 +34,7 @@ final class ReviewChecklist
         'bias' => 'Bebas bias',
         'stimulus' => 'Stimulus',
         'homogen' => 'Pilihan homogen',
-        'soal_dibutuhkan' => 'Soal dibutuhkan',
+        'soal_dibutuhkan' => 'Soal berfungsi',
     ];
 
     /**

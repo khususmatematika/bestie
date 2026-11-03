@@ -2,10 +2,13 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 /**
- * Ilustrasi orisinal: seorang guru menarik kartu login dengan tali. Saat halaman dibuka ia berjalan masuk
- * (kaki melangkah) menarik kartu, lalu berhenti dan bernapas/berkedip pelan. Bila perangkat memilih
+ * Ilustrasi orisinal: dua guru memindahkan kartu login. Yang di depan (mode "pull") menarik dengan tali sambil
+ * berjalan mundur menghadap kartu, yang di belakang (mode "push") mendorong sambil berjalan maju. Saat halaman dibuka mereka berjalan
+ * (siklus langkah dengan lutut menekuk), lalu berhenti, bernapas, dan berkedip. Bila perangkat memilih
  * "kurangi gerakan", yang tampil hanya pose akhir.
  */
+withDefaults(defineProps<{ mode?: 'pull' | 'push' }>(), { mode: 'pull' });
+
 const walking = ref(true);
 let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -19,73 +22,163 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <svg viewBox="0 0 260 250" overflow="visible" class="pc" :class="{ 'pc-walking': walking }" role="img" aria-label="Ilustrasi guru menarik kartu login" xmlns="http://www.w3.org/2000/svg">
-        <!-- bayangan -->
-        <ellipse cx="108" cy="244" rx="62" ry="6" fill="rgba(0,0,0,0.28)" />
-
+    <template v-if="mode === 'pull'">
+    <svg viewBox="0 0 260 250" overflow="visible" class="pc pc-pull" :class="{ 'pc-walking': walking }" role="img" aria-label="Ilustrasi guru menarik kartu login sambil berjalan mundur" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(60 0)">
+        <ellipse cx="98" cy="236" rx="52" ry="5.5" fill="rgba(0,0,0,0.28)" />
         <defs>
-            <linearGradient id="pc-shirt" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id="pc-shirt-pull" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0" stop-color="#d2bf8e" />
                 <stop offset="1" stop-color="#b9a46c" />
             </linearGradient>
         </defs>
 
         <g class="pc-body">
-            <!-- kaki belakang -->
-            <g class="pc-leg-b">
-                <path d="M112 152 L136 224" stroke="#3a2418" stroke-width="25" stroke-linecap="round" fill="none" />
-                <path d="M112 152 L136 224" stroke="#8f7c4c" stroke-width="21" stroke-linecap="round" fill="none" />
-                <path d="M122 232 Q124 224 138 226 L146 238 L118 240 Z" fill="#2b1a12" stroke="#3a2418" stroke-width="1.6" stroke-linejoin="round" />
+            <g class="pc-thigh pc-leg-b">
+                <path d="M100 154 L100 190" stroke="#3a2418" stroke-width="27" stroke-linecap="round" fill="none" />
+                <path d="M100 154 L100 190" stroke="#8f7c4c" stroke-width="23" stroke-linecap="round" fill="none" />
+                <g class="pc-shin">
+                    <path d="M100 190 L100 226" stroke="#3a2418" stroke-width="23" stroke-linecap="round" fill="none" />
+                    <path d="M100 190 L100 226" stroke="#8f7c4c" stroke-width="19" stroke-linecap="round" fill="none" />
+                    <path d="M108 221 L108 233 L80 234 Q75 234 76 229 Q79 223 93 221 Z" fill="#2b1a12" stroke="#3a2418" stroke-width="1.6" stroke-linejoin="round" />
+                </g>
             </g>
-            <!-- kaki depan -->
-            <g class="pc-leg-f">
-                <path d="M108 152 L86 226" stroke="#3a2418" stroke-width="25" stroke-linecap="round" fill="none" />
-                <path d="M108 152 L86 226" stroke="#a08d5a" stroke-width="21" stroke-linecap="round" fill="none" />
-                <path d="M62 238 Q64 226 84 228 L96 236 L96 240 L62 241 Z" fill="#2b1a12" stroke="#3a2418" stroke-width="1.6" stroke-linejoin="round" />
-            </g>
-
-            <!-- tubuh: kemeja PDH KORPRI khaki, dimasukkan ke celana -->
-            <path d="M74 108 Q92 90 118 99 L128 160 Q108 170 94 160 Z" fill="url(#pc-shirt)" stroke="#3a2418" stroke-width="2.2" stroke-linejoin="round" />
-            <!-- lipatan & bayangan kain -->
-            <path d="M118 104 L126 158" stroke="#6f5f33" stroke-width="5" opacity="0.35" stroke-linecap="round" />
-            <path d="M100 134 Q110 140 124 138" stroke="#6f5f33" stroke-width="1.6" fill="none" opacity="0.45" />
-            <path d="M96 146 Q108 152 126 148" stroke="#6f5f33" stroke-width="1.4" fill="none" opacity="0.4" />
-            <!-- kerah terbuka -->
-            <path d="M82 99 L97 116 L101 98 Q92 92 82 99 Z" fill="#dccda4" />
-            <path d="M82 99 L97 116 L101 98" stroke="#8f7f52" stroke-width="1" fill="none" />
-            <!-- plaket + kancing -->
-            <path d="M97 116 L106 164" stroke="#6f5f33" stroke-width="1.4" />
-            <circle cx="99" cy="124" r="1.5" fill="#f3ead0" />
-            <circle cx="101" cy="136" r="1.5" fill="#f3ead0" />
-            <circle cx="103" cy="148" r="1.5" fill="#f3ead0" />
-            <!-- tanda pangkat di bahu -->
-            <g transform="rotate(-24 86 103)">
-                <rect x="78" y="99" width="15" height="6" rx="1.4" fill="#16255f" stroke="#f5c518" stroke-width="1" />
-                <rect x="82" y="100.2" width="2" height="3.6" fill="#f5c518" />
-                <rect x="86" y="100.2" width="2" height="3.6" fill="#f5c518" />
-            </g>
-            <!-- saku dada bertutup -->
-            <path d="M80 131 L94 134 L94 143 Q87 147 80 143 Z" fill="#c2ad78" stroke="#6f5f33" stroke-width="0.9" />
-            <circle cx="87" cy="141" r="1.2" fill="#f3ead0" />
-            <!-- papan nama (dada kanan) -->
-            <rect x="109" y="124" width="14" height="5.4" rx="1.2" fill="#f3f4f8" stroke="#aab2cf" stroke-width="0.6" />
-            <path d="M111 126.7 H121" stroke="#5a6285" stroke-width="1" stroke-linecap="round" />
-            <!-- ikat pinggang -->
-            <path d="M93 158 Q108 167 128 160 L128 166 Q108 174 93 165 Z" fill="#0d0d10" />
-            <rect x="105" y="160" width="9" height="7" rx="1.6" fill="#f5c518" stroke="#a97a0c" stroke-width="0.8" transform="rotate(8 109 163)" />
-
-            <!-- lengan belakang (memegang tali) -->
-            <g class="pc-arm-b">
-                <path d="M104 108 L124 126 L150 129" stroke="#3a2418" stroke-width="17.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                <path d="M104 108 L117 121" stroke="#3a2418" stroke-width="21.5" stroke-linecap="round" fill="none" />
-                <path d="M104 108 L124 126 L150 129" stroke="#f6c49a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                <path d="M104 108 L117 121" stroke="#c2ad78" stroke-width="17" stroke-linecap="round" fill="none" />
-                <path d="M112 117 L122 127" stroke="#6f5f33" stroke-width="2" opacity="0.5" />
-                <circle cx="152" cy="129" r="7.5" fill="#f6c49a" stroke="#3a2418" stroke-width="1.8" />
+            <g class="pc-thigh pc-leg-f">
+                <path d="M100 154 L100 190" stroke="#3a2418" stroke-width="27" stroke-linecap="round" fill="none" />
+                <path d="M100 154 L100 190" stroke="#a08d5a" stroke-width="23" stroke-linecap="round" fill="none" />
+                <g class="pc-shin">
+                    <path d="M100 190 L100 226" stroke="#3a2418" stroke-width="23" stroke-linecap="round" fill="none" />
+                    <path d="M100 190 L100 226" stroke="#a08d5a" stroke-width="19" stroke-linecap="round" fill="none" />
+                    <path d="M108 221 L108 233 L80 234 Q75 234 76 229 Q79 223 93 221 Z" fill="#2b1a12" stroke="#3a2418" stroke-width="1.6" stroke-linejoin="round" />
+                </g>
             </g>
 
-            <!-- kepala: gaya kartun chibi (kepala besar), menghadap kiri -->
+            <g class="pc-upper pc-lean-pull">
+                <g class="pc-arm-b">
+                    <path d="M98 114 L86 138 L70 148" stroke="#3a2418" stroke-width="16.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M98 114 L93 127" stroke="#3a2418" stroke-width="21" stroke-linecap="round" fill="none" />
+                    <path d="M98 114 L86 138 L70 148" stroke="#e6ad82" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M98 114 L93 127" stroke="#c2ad78" stroke-width="17" stroke-linecap="round" fill="none" />
+                    <circle cx="70" cy="148" r="7.2" fill="#e6ad82" stroke="#3a2418" stroke-width="1.8" />
+                </g>
+                <!-- badan tegak: kemeja khaki dimasukkan ke celana -->
+                <path d="M83 108 Q100 100 117 108 L116 156 Q100 162 84 156 Z" fill="url(#pc-shirt-pull)" stroke="#3a2418" stroke-width="2.2" stroke-linejoin="round" />
+                <path d="M112 112 L115 156" stroke="#6f5f33" stroke-width="4" opacity="0.3" stroke-linecap="round" />
+                <path d="M90 100 L100 118 L108 99 Q99 94 90 100 Z" fill="#dccda4" stroke="#8f7f52" stroke-width="1" stroke-linejoin="round" />
+                <path d="M100 118 L100 158" stroke="#6f5f33" stroke-width="1.4" />
+                <circle cx="100" cy="127" r="1.5" fill="#f3ead0" />
+                <circle cx="100" cy="139" r="1.5" fill="#f3ead0" />
+                <circle cx="100" cy="150" r="1.5" fill="#f3ead0" />
+                <path d="M86 130 L97 132 L97 142 Q91 146 86 142 Z" fill="#c2ad78" stroke="#6f5f33" stroke-width="0.9" />
+                <rect x="104" y="125" width="11" height="4.6" rx="1.1" fill="#f3f4f8" stroke="#aab2cf" stroke-width="0.6" />
+                <path d="M83.5 151 Q100 157.5 116.5 151 L116.5 158 Q100 164.5 83.5 158 Z" fill="#2b1a12" stroke="#3a2418" stroke-width="1.2" stroke-linejoin="round" />
+                <rect x="88" y="152.5" width="9.5" height="7.4" rx="1.6" fill="#e9b830" stroke="#a97a0c" stroke-width="0.9" />
+                <path d="M91 156.2 H95" stroke="#a97a0c" stroke-width="1.2" stroke-linecap="round" />
+                <g class="pc-arm-f">
+                    <path d="M104 114 L92 137 L66 144" stroke="#3a2418" stroke-width="16.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M104 114 L98 126" stroke="#3a2418" stroke-width="21" stroke-linecap="round" fill="none" />
+                    <path d="M104 114 L92 137 L66 144" stroke="#f6c49a" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M104 114 L98 126" stroke="#c2ad78" stroke-width="17" stroke-linecap="round" fill="none" />
+                    <circle cx="66" cy="144" r="7.2" fill="#f6c49a" stroke="#3a2418" stroke-width="1.8" />
+                </g>
             <g class="pc-head">
+                <g transform="translate(24 8)">
+                <g transform="translate(74 100) scale(1.3) translate(-74 -100)">
+                    <rect x="68" y="88" width="14" height="14" rx="5" fill="#e0a070" stroke="#3a2418" stroke-width="1.6" />
+                    <ellipse cx="94" cy="76" rx="4.6" ry="6" fill="#f0b98a" stroke="#3a2418" stroke-width="1.6" />
+                    <path d="M93 73 Q96 76 93.4 79.5" stroke="#d58a5d" stroke-width="1.3" fill="none" stroke-linecap="round" />
+                    <path d="M50 68 Q49 48 74 47 Q98 48 97 68 Q97 90 76 94 Q54 94 50 68 Z" fill="#f2c093" stroke="#3a2418" stroke-width="2" stroke-linejoin="round" />
+                    <!-- rambut hitam rapi, disisir ke belakang, cambang tipis -->
+                    <path d="M48 70 Q44 42 66 38 Q86 32 97 48 Q101 58 98 74 Q96 62 90 56 Q80 49 66 50 Q57 53 54 64 Q53 70 52 76 Q49 76 48 70 Z" fill="#141015" stroke="#3a2418" stroke-width="2" stroke-linejoin="round" />
+                    <path d="M58 44 Q70 38 86 42" stroke="#3a3138" stroke-width="2.4" stroke-linecap="round" fill="none" />
+                    <path d="M92 60 Q96 66 95 78" stroke="#141015" stroke-width="2.6" stroke-linecap="round" fill="none" />
+                    <!-- alis tebal -->
+                    <path d="M55.5 62.5 Q62 58.5 69 62" stroke="#141015" stroke-width="2.8" stroke-linecap="round" fill="none" />
+                    <path d="M76.5 62 Q83 58.5 89 62.5" stroke="#141015" stroke-width="2.6" stroke-linecap="round" fill="none" />
+                    <g class="pc-eye">
+                        <ellipse cx="62.5" cy="72" rx="3.4" ry="4.6" fill="#1b110c" />
+                        <circle cx="61.3" cy="70.2" r="1.3" fill="#ffffff" />
+                        <ellipse cx="82" cy="72" rx="3.2" ry="4.4" fill="#1b110c" />
+                        <circle cx="80.9" cy="70.2" r="1.2" fill="#ffffff" />
+                    </g>
+                    <ellipse cx="58" cy="83" rx="4" ry="2.4" fill="#e9857a" opacity="0.4" />
+                    <ellipse cx="88" cy="83" rx="3.4" ry="2.2" fill="#e9857a" opacity="0.35" />
+                    <path d="M72 79.5 Q75 82.4 72.2 84.4" stroke="#c9804f" stroke-width="1.5" stroke-linecap="round" fill="none" />
+                    <!-- kumis tipis dan senyum -->
+                    <path d="M62.5 85.6 Q72 83.2 81.5 85.6 Q72 86.8 62.5 85.6 Z" fill="#141015" />
+                    <path d="M65 88.6 Q72.5 94 80.5 88.6" stroke="#8f3a32" stroke-width="2.2" stroke-linecap="round" fill="none" />
+                </g>
+                </g>
+            </g>
+            </g>
+        </g>
+        <!-- tali ke kartu (digambar di sisi kiri; seluruh karakter dicerminkan sehingga menghadap kartu) -->
+        <path d="M62 145 Q0 164 -60 148" stroke="#c79348" stroke-width="3.4" stroke-linecap="round" fill="none" />
+        <path d="M54 146 Q0 163 -60 148" stroke="#e6bb73" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="3 4" fill="none" />
+        <circle cx="-61" cy="148" r="4.5" fill="#c79348" />
+        </g>
+    </svg>
+    </template>
+    <template v-else>
+    <svg viewBox="0 0 260 250" overflow="visible" class="pc pc-push" :class="{ 'pc-walking': walking }" role="img" aria-label="Ilustrasi guru mendorong kartu login" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="98" cy="236" rx="52" ry="5.5" fill="rgba(0,0,0,0.28)" />
+        <defs>
+            <linearGradient id="pc-shirt-push" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#d2bf8e" />
+                <stop offset="1" stop-color="#b9a46c" />
+            </linearGradient>
+        </defs>
+
+        <g class="pc-body">
+            <g class="pc-thigh pc-leg-b">
+                <path d="M100 154 L100 190" stroke="#3a2418" stroke-width="27" stroke-linecap="round" fill="none" />
+                <path d="M100 154 L100 190" stroke="#8f7c4c" stroke-width="23" stroke-linecap="round" fill="none" />
+                <g class="pc-shin">
+                    <path d="M100 190 L100 226" stroke="#3a2418" stroke-width="23" stroke-linecap="round" fill="none" />
+                    <path d="M100 190 L100 226" stroke="#8f7c4c" stroke-width="19" stroke-linecap="round" fill="none" />
+                    <path d="M108 221 L108 233 L80 234 Q75 234 76 229 Q79 223 93 221 Z" fill="#2b1a12" stroke="#3a2418" stroke-width="1.6" stroke-linejoin="round" />
+                </g>
+            </g>
+            <g class="pc-thigh pc-leg-f">
+                <path d="M100 154 L100 190" stroke="#3a2418" stroke-width="27" stroke-linecap="round" fill="none" />
+                <path d="M100 154 L100 190" stroke="#a08d5a" stroke-width="23" stroke-linecap="round" fill="none" />
+                <g class="pc-shin">
+                    <path d="M100 190 L100 226" stroke="#3a2418" stroke-width="23" stroke-linecap="round" fill="none" />
+                    <path d="M100 190 L100 226" stroke="#a08d5a" stroke-width="19" stroke-linecap="round" fill="none" />
+                    <path d="M108 221 L108 233 L80 234 Q75 234 76 229 Q79 223 93 221 Z" fill="#2b1a12" stroke="#3a2418" stroke-width="1.6" stroke-linejoin="round" />
+                </g>
+            </g>
+
+            <g class="pc-upper pc-lean-push">
+                <g class="pc-arm-b">
+                <path d="M96 114 L56 122 L14 111" stroke="#3a2418" stroke-width="16.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <path d="M96 114 L84 117" stroke="#3a2418" stroke-width="21" stroke-linecap="round" fill="none" />
+                <path d="M96 114 L56 122 L14 111" stroke="#e6ad82" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <path d="M96 114 L84 117" stroke="#c2ad78" stroke-width="17" stroke-linecap="round" fill="none" />
+                <circle cx="13" cy="110" r="7.2" fill="#e6ad82" stroke="#3a2418" stroke-width="1.8" />
+                </g>
+                <!-- badan tegak: kemeja khaki dimasukkan ke celana -->
+                <path d="M83 108 Q100 100 117 108 L116 156 Q100 162 84 156 Z" fill="url(#pc-shirt-push)" stroke="#3a2418" stroke-width="2.2" stroke-linejoin="round" />
+                <path d="M112 112 L115 156" stroke="#6f5f33" stroke-width="4" opacity="0.3" stroke-linecap="round" />
+                <path d="M90 100 L100 118 L108 99 Q99 94 90 100 Z" fill="#dccda4" stroke="#8f7f52" stroke-width="1" stroke-linejoin="round" />
+                <path d="M100 118 L100 158" stroke="#6f5f33" stroke-width="1.4" />
+                <circle cx="100" cy="127" r="1.5" fill="#f3ead0" />
+                <circle cx="100" cy="139" r="1.5" fill="#f3ead0" />
+                <circle cx="100" cy="150" r="1.5" fill="#f3ead0" />
+                <path d="M86 130 L97 132 L97 142 Q91 146 86 142 Z" fill="#c2ad78" stroke="#6f5f33" stroke-width="0.9" />
+                <rect x="104" y="125" width="11" height="4.6" rx="1.1" fill="#f3f4f8" stroke="#aab2cf" stroke-width="0.6" />
+                <path d="M83.5 151 Q100 157.5 116.5 151 L116.5 158 Q100 164.5 83.5 158 Z" fill="#2b1a12" stroke="#3a2418" stroke-width="1.2" stroke-linejoin="round" />
+                <rect x="88" y="152.5" width="9.5" height="7.4" rx="1.6" fill="#e9b830" stroke="#a97a0c" stroke-width="0.9" />
+                <path d="M91 156.2 H95" stroke="#a97a0c" stroke-width="1.2" stroke-linecap="round" />
+                <g class="pc-arm-f">
+                <path d="M100 115 L58 126 L12 114" stroke="#3a2418" stroke-width="16.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <path d="M100 115 L88 119" stroke="#3a2418" stroke-width="21" stroke-linecap="round" fill="none" />
+                <path d="M100 115 L58 126 L12 114" stroke="#f6c49a" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <path d="M100 115 L88 119" stroke="#c2ad78" stroke-width="17" stroke-linecap="round" fill="none" />
+                <circle cx="11" cy="113" r="7.2" fill="#f6c49a" stroke="#3a2418" stroke-width="1.8" />
+                </g>
+            <g class="pc-head">
+                <g transform="translate(24 8)">
                 <g transform="translate(74 100) scale(1.3) translate(-74 -100)">
                     <rect x="68" y="88" width="14" height="14" rx="5" fill="#eaa877" stroke="#3a2418" stroke-width="1.6" />
                     <!-- telinga -->
@@ -114,24 +207,12 @@ onBeforeUnmount(() => {
                     <path d="M64 86.5 Q72 94 81 86.5 Q72 89 64 86.5 Z" fill="#c8402f" stroke="#3a2418" stroke-width="1.3" stroke-linejoin="round" />
                     <path d="M68 89.4 Q72 92 76.5 89.4 Q72 88.6 68 89.4 Z" fill="#f08a78" />
                 </g>
+                </g>
             </g>
-
-            <!-- lengan depan (memegang tali) -->
-            <g class="pc-arm-f">
-                <path d="M98 108 L122 132 L172 128" stroke="#3a2418" stroke-width="17.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                <path d="M98 108 L113 123" stroke="#3a2418" stroke-width="21.5" stroke-linecap="round" fill="none" />
-                <path d="M98 108 L122 132 L172 128" stroke="#f6c49a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                <path d="M98 108 L113 123" stroke="#c2ad78" stroke-width="17" stroke-linecap="round" fill="none" />
-                <path d="M108 118 L118 128" stroke="#6f5f33" stroke-width="2" opacity="0.5" />
-                <circle cx="174" cy="128" r="7.5" fill="#f6c49a" stroke="#3a2418" stroke-width="1.8" />
             </g>
         </g>
-
-        <!-- tali ke kartu -->
-        <path d="M150 129 Q205 150 252 130" stroke="#c79348" stroke-width="3.4" stroke-linecap="round" fill="none" />
-        <path d="M160 129 Q206 150 252 130" stroke="#e6bb73" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="3 4" fill="none" />
-        <circle cx="253" cy="130" r="4.5" fill="#c79348" />
     </svg>
+    </template>
 </template>
 
 <style>
@@ -140,8 +221,9 @@ onBeforeUnmount(() => {
     filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.25));
 }
 
-.pc-leg-b,
-.pc-leg-f,
+.pc-thigh,
+.pc-shin,
+.pc-upper,
 .pc-arm-b,
 .pc-arm-f,
 .pc-head,
@@ -150,26 +232,46 @@ onBeforeUnmount(() => {
     transition: transform 0.5s ease-out;
 }
 
-.pc-leg-b,
+.pc-thigh {
+    transform-origin: 100px 154px;
+}
+
+.pc-shin {
+    transform-origin: 100px 190px;
+}
+
+.pc-upper {
+    transform-origin: 100px 156px;
+}
+
+.pc-pull {
+    transform: scaleX(-1);
+}
+
+.pc-lean-pull {
+    transform: rotate(7deg);
+}
+
+.pc-lean-push {
+    transform: rotate(-12deg);
+}
+
+/* berdiri: sedikit melangkah (satu kaki di depan) */
 .pc-leg-f {
-    transform-origin: 112px 152px;
+    transform: rotate(7deg);
 }
 
 .pc-leg-b {
-    transform: rotate(6deg);
-}
-
-.pc-leg-f {
-    transform: rotate(-4deg);
+    transform: rotate(-9deg);
 }
 
 .pc-arm-b,
 .pc-arm-f {
-    transform-origin: 100px 108px;
+    transform-origin: 100px 114px;
 }
 
 .pc-head {
-    transform-origin: 74px 96px;
+    transform-origin: 98px 108px;
 }
 
 .pc-eye {
@@ -177,33 +279,44 @@ onBeforeUnmount(() => {
     transform-origin: center;
 }
 
-@keyframes pc-step-f {
+@keyframes pc-thigh-walk {
     0%,
     100% {
-        transform: rotate(13deg);
+        transform: rotate(27deg);
     }
     50% {
-        transform: rotate(-14deg);
+        transform: rotate(-24deg);
     }
 }
 
-@keyframes pc-step-b {
+@keyframes pc-shin-walk {
     0%,
     100% {
-        transform: rotate(-14deg);
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-6deg);
     }
     50% {
-        transform: rotate(13deg);
+        transform: rotate(-10deg);
+    }
+    68% {
+        transform: rotate(-58deg);
+    }
+    85% {
+        transform: rotate(-30deg);
     }
 }
 
 @keyframes pc-bob {
     0%,
+    50%,
     100% {
         transform: translateY(0);
     }
-    50% {
-        transform: translateY(-2px);
+    25%,
+    75% {
+        transform: translateY(-3px);
     }
 }
 
@@ -217,13 +330,23 @@ onBeforeUnmount(() => {
     }
 }
 
-@keyframes pc-tug {
+@keyframes pc-push-sway {
     0%,
     100% {
-        transform: rotate(0deg);
+        transform: rotate(-12deg);
     }
     50% {
-        transform: rotate(2.5deg);
+        transform: rotate(-14.5deg);
+    }
+}
+
+@keyframes pc-pull-sway {
+    0%,
+    100% {
+        transform: rotate(7deg);
+    }
+    50% {
+        transform: rotate(9.5deg);
     }
 }
 
@@ -239,33 +362,42 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .pc-walking .pc-leg-f {
-        animation: pc-step-f 1.8s ease-in-out infinite;
+    .pc-walking .pc-thigh {
+        animation: pc-thigh-walk 1.2s ease-in-out infinite;
     }
 
     .pc-walking .pc-leg-b {
-        animation: pc-step-b 1.8s ease-in-out infinite;
+        animation-delay: -0.6s;
+    }
+
+    .pc-walking .pc-shin {
+        animation: pc-shin-walk 1.2s ease-in-out infinite;
+    }
+
+    .pc-walking .pc-leg-b .pc-shin {
+        animation-delay: -0.6s;
+    }
+
+    /* yang di depan berjalan mundur: siklus langkah diputar balik */
+    .pc-pull.pc-walking .pc-thigh,
+    .pc-pull.pc-walking .pc-shin {
+        animation-direction: reverse;
     }
 
     .pc-walking .pc-body {
-        animation: pc-bob 0.9s ease-in-out infinite;
-    }
-
-    .pc-walking .pc-arm-f,
-    .pc-walking .pc-arm-b {
-        transform: rotate(0deg);
+        animation: pc-bob 0.6s ease-in-out infinite;
     }
 
     .pc:not(.pc-walking) .pc-head {
         animation: pc-breathe 3.2s ease-in-out infinite;
     }
 
-    .pc:not(.pc-walking) .pc-arm-f {
-        animation: pc-tug 2.6s ease-in-out infinite;
+    .pc:not(.pc-walking) .pc-lean-push {
+        animation: pc-push-sway 2.4s ease-in-out infinite;
     }
 
-    .pc:not(.pc-walking) .pc-arm-b {
-        animation: pc-tug 2.6s ease-in-out -1.3s infinite;
+    .pc:not(.pc-walking) .pc-lean-pull {
+        animation: pc-pull-sway 2.8s ease-in-out infinite;
     }
 
     .pc-eye {
