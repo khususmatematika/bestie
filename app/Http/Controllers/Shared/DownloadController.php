@@ -11,6 +11,7 @@ use App\Services\Export\RecapWorkbook;
 use App\Http\Controllers\Controller;
 use App\Models\PackageExport;
 use App\Models\QuestionPackage;
+use App\Services\Export\CbtDocument;
 use App\Services\Export\PackageDocument;
 use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
@@ -60,6 +61,21 @@ class DownloadController extends Controller
         ActivityLogger::log('download.validated', $package, ['numbers' => $numbers]);
 
         return response()->download($path, 'soal-tervalidasi-'.$this->slug($package).'.docx')->deleteFileAfterSend(true);
+    }
+
+    /** Naskah berformat Template Ujian CBT sekolah; hanya setelah paket Fix/Terkunci. */
+    public function cbt(QuestionPackage $package, CbtDocument $document): BinaryFileResponse
+    {
+        Gate::authorize('view', $package);
+
+        abort_unless(CbtDocument::available($package), 403, 'Naskah CBT tersedia setelah paket berstatus Fix.');
+
+        $path = tempnam(sys_get_temp_dir(), 'bs').'.docx';
+        $document->build($package, $path);
+
+        ActivityLogger::log('download.cbt', $package);
+
+        return response()->download($path, 'naskah-cbt-'.$this->slug($package).'.docx')->deleteFileAfterSend(true);
     }
 
     public function requestFinal(Request $request, QuestionPackage $package, RequestFinalExport $action): RedirectResponse

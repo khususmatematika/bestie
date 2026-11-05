@@ -131,7 +131,7 @@ final class PackagePresenter
      */
     private static function unreferencedImages(QuestionItem $item): array
     {
-        $text = $item->stem.' '.implode(' ', array_filter((array) ($item->options ?? []), 'is_string')).' '.$item->scoring_guide;
+        $text = $item->stem.' '.implode(' ', array_filter((array) ($item->options ?? []), 'is_string')).' '.$item->answer_key.' '.$item->scoring_guide;
         preg_match_all('/⟦img:(\d+)⟧/u', $text, $m);
         $used = array_map('intval', $m[1]);
 

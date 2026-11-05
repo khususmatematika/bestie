@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Archive, FileText, LoaderCircle, Trash2, Upload } from '@lucide/vue';
-import { ref } from 'vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import FilePicker from '@/Components/ui/FilePicker.vue';
 import FormField from '@/Components/ui/FormField.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import Pagination from '@/Components/ui/Pagination.vue';
@@ -29,7 +29,6 @@ defineProps<{
 }>();
 
 const { confirm } = useConfirm();
-const fileInput = ref<HTMLInputElement | null>(null);
 
 const form = useForm<{ subject_id: number | ''; grade_level_id: number | ''; year_label: string; file: File | null }>({
     subject_id: '',
@@ -44,7 +43,6 @@ function submit(): void {
         preserveScroll: true,
         onSuccess: () => {
             form.reset('file');
-            if (fileInput.value) fileInput.value.value = '';
         },
     });
 }
@@ -92,7 +90,7 @@ async function remove(row: ImportRow): Promise<void> {
                     <input :id="id" v-model="form.year_label" class="input" maxlength="40" :class="{ 'input-error': invalid }" />
                 </FormField>
                 <FormField v-slot="{ id, invalid }" label="Naskah (.docx / .pdf)" :error="form.errors.file" required>
-                    <input :id="id" ref="fileInput" type="file" accept=".docx,.pdf" class="block w-full min-w-0 text-sm" :class="{ 'input-error': invalid }" @change="form.file = ($event.target as HTMLInputElement).files?.[0] ?? null" />
+                    <FilePicker :id="id" v-model="form.file" accept=".docx,.pdf" label="Pilih naskah arsip" :invalid="invalid" />
                 </FormField>
                 <button type="submit" class="btn-primary" :disabled="!form.file || form.subject_id === '' || !form.year_label.trim() || form.processing">
                     <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />

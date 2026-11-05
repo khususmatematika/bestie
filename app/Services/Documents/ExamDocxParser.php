@@ -82,7 +82,7 @@ final class ExamDocxParser
             }
 
             // Stem: paragraf berdaftar angka tingkat 0.
-            if ($list !== null && $list['fmt'] === 'decimal' && $this->startsQuestion($list, $current)) {
+            if ($list !== null && $list['fmt'] === 'decimal' && $this->startsQuestion($list, $current) && ! $this->nestedInStem($list, $current)) {
                 if ($current !== null) {
                     $questions[] = $current;
                 }
@@ -110,26 +110,55 @@ final class ExamDocxParser
             }
 
             // Menjodohkan: baris "Pengecoh: a; b" = pilihan jawaban tambahan yang tidak dipakai pernyataan mana pun.
-            if ($current['type'] === QuestionType::Menjodohkan && preg_match('/^\s*((?:<[biu]>)*)\s*(?:pilihan\s+)?pengecoh\s*(?:<\/[biu]>)*\s*[:：]\s*(?:<\/[biu]>)*\s*(.+)$/iu', $text, $dm) === 1) {
+            if ($current['type'] === QuestionType::Menjodohkan && preg_match('/^\s*((?:<(?:b|i|u|sub|sup)>)*)\s*(?:pilihan\s+)?pengecoh\s*(?:<\/(?:b|i|u|sub|sup)>)*\s*[:：]\s*(?:<\/(?:b|i|u|sub|sup)>)*\s*(.*)$/iu', $text, $dm) === 1) {
                 // Tag pembuka sebelum kata "Pengecoh" (mis. seluruh baris miring) ikut ditutup di akhir baris: buang penutupnya.
                 $tail = $dm[2];
-                preg_match_all('/<([biu])>/i', $dm[1], $open);
+                preg_match_all('/<(b|i|u|sub|sup)>/i', $dm[1], $open);
 
                 foreach (array_reverse($open[1]) as $t) {
                     $tail = preg_replace('/\s*<\/'.$t.'>\s*$/i', '', $tail) ?? $tail;
                 }
 
-                $current['distractors'] = [...$current['distractors'], ...array_values(array_filter(array_map(fn (string $d): string => $this->balanceTags(trim($d)), explode(';', $tail)), static fn (string $d): bool => $d !== ''))];
+                $current['distractors'] = [...$current['distractors'], ...$this->distractorList($tail)];
+                $current['in_distractors'] = true;
                 $current['images'] = [...$current['images'], ...$block['images']];
 
                 continue;
             }
 
+            // Gambar pengecoh pada paragraf berikutnya (baris "Pengecoh:" kosong atau gambar diletakkan di bawahnya).
+            if ($current['type'] === QuestionType::Menjodohkan && ($current['in_distractors'] ?? false) && $list === null && $bare === '' && $block['images'] !== []) {
+                $current['distractors'] = [...$current['distractors'], ...$this->distractorList($text)];
+                $current['images'] = [...$current['images'], ...$block['images']];
+
+                continue;
+            }
+
+            $current['in_distractors'] = false;
+
             // Pilihan: paragraf berdaftar huruf.
             if ($list !== null && in_array($list['fmt'], ['upperLetter', 'lowerLetter'], true)) {
                 if ($lastOptionList !== $list['num_id']) {
-                    $current['letters'] = 0;
+                    $previous = $current['option_list'] ?? null;
+
+                    // Daftar huruf sebelumnya yang lebih dalam / beda gaya (a. b. c. vs A. B. C.) adalah bagian soal, bukan pilihan.
+                    if ($lastOptionList !== null && $current['options'] !== [] && $previous !== null
+                        && ($previous['level'] > $list['level'] || ($previous['fmt'] !== $list['fmt'] && $previous['level'] >= $list['level']))) {
+                        foreach ($current['options'] as $letter => $optText) {
+                            $label = $previous['fmt'] === 'lowerLetter' ? mb_strtolower($letter) : $letter;
+                            $current['stem'][] = $label.'. '.$optText;
+                        }
+
+                        $current['options'] = [];
+                        $current['red'] = [];
+                        $current['option_blocks'] = [];
+                        $current['letters'] = 0;
+                    } elseif ($lastOptionList === null || $current['options'] === []) {
+                        $current['letters'] = 0;
+                    }
+
                     $lastOptionList = $list['num_id'];
+                    $current['option_list'] = $list;
                 }
 
                 $index = $current['letters']++;
@@ -157,6 +186,18 @@ final class ExamDocxParser
                 } else {
                     $pendingImages = [...$pendingImages, ...$block['images']];
                 }
+
+                continue;
+            }
+
+            if ($list !== null && $list['fmt'] !== 'bullet' && $current['options'] === []) {
+                // Daftar bernomor/romawi di dalam soal: nomornya hilang pada teks mentah, jadi ditulis ulang.
+                $key = $list['num_id'].'/'.$list['level'];
+                $current['sub'][$key] = ($current['sub'][$key] ?? 0) + 1;
+                $label = $this->listLabel($list['fmt'], $current['sub'][$key]);
+                $current['stem'][] = $label.' '.$text;
+                $current['stem_blocks'][] = $block;
+                $current['images'] = [...$current['images'], ...$block['images']];
 
                 continue;
             }
@@ -196,6 +237,47 @@ final class ExamDocxParser
         return ['items' => $items, 'warnings' => $warnings];
     }
 
+
+    /**
+     * Daftar angka tingkat 0 berbeda dari daftar nomor soal, padahal soal bentuk berpilihan (PG/PG kompleks/menjodohkan)
+     * belum punya pilihan: itu daftar bernomor di dalam soal, bukan soal baru.
+     *
+     * @param  array{num_id: int, level: int, fmt: string}  $list
+     * @param  array<string, mixed>|null  $current
+     */
+    private function nestedInStem(array $list, ?array $current): bool
+    {
+        if ($current === null || $current['options'] !== [] || ($current['list_key'] ?? null) === $list['num_id'].'/'.$list['level']) {
+            return false;
+        }
+
+        return $list['level'] > 0
+            || in_array($current['type'], [QuestionType::PilihanGanda, QuestionType::PilihanGandaKompleks, QuestionType::Menjodohkan], true);
+    }
+
+    private function listLabel(string $fmt, int $n): string
+    {
+        $roman = static function (int $v): string {
+            $out = '';
+
+            foreach (['x' => 10, 'ix' => 9, 'v' => 5, 'iv' => 4, 'i' => 1] as $sym => $val) {
+                while ($v >= $val) {
+                    $out .= $sym;
+                    $v -= $val;
+                }
+            }
+
+            return $out;
+        };
+
+        return match ($fmt) {
+            'lowerLetter' => chr(96 + (($n - 1) % 26) + 1).'.',
+            'upperLetter' => chr(64 + (($n - 1) % 26) + 1).'.',
+            'lowerRoman' => $roman($n).'.',
+            'upperRoman' => strtoupper($roman($n)).'.',
+            default => $n.'.',
+        };
+    }
 
     /**
      * Daftar bernomor desimal dianggap nomor soal bila: tingkat 0; atau belum ada soal; atau soal sebelumnya sudah punya
@@ -308,7 +390,7 @@ final class ExamDocxParser
                 $pairs = [];
 
                 foreach ($options as $letter => $text) {
-                    if (preg_match('/^(.*?)\s*\(([^()]+)\)\s*((?:<\/[biu]>)*)\s*$/us', $text, $m) === 1) {
+                    if (preg_match('/^(.*?)\s*\(([^()]+)\)\s*((?:<\/(?:b|i|u|sub|sup)>)*)\s*$/us', $text, $m) === 1) {
                         $options[$letter] = trim($m[1]).$m[3];
                         $pairs[$letter] = trim($m[2]);
                     }
@@ -343,9 +425,18 @@ final class ExamDocxParser
      */
     private static function stripTfMarker(string $text): string
     {
-        $t = '(?:<\/?[biu]>)*';
+        $t = '(?:<\/?(?:b|i|u|sub|sup)>)*';
 
-        return preg_replace('/\s*\(\s*'.$t.'B\s*'.$t.'\/\s*'.$t.'S\s*'.$t.'\)\s*\.?\s*((?:<\/[biu]>)*)\s*$/u', '$1', $text) ?? $text;
+        // Huruf boleh kecil; spasi (termasuk ganda/NBSP/tab) di mana pun diabaikan. Tanpa tanda kurung hanya dikenali
+        // bila berdiri sendiri (bukan bagian kata seperti "Mb/s").
+        $tail = '\s*\.?\s*((?:<\/(?:b|i|u|sub|sup)>)*)\s*$/iu';
+        $paren = preg_replace('/\s*\(\s*'.$t.'B\s*'.$t.'\/\s*'.$t.'S\s*'.$t.'\)'.$tail, '$1', $text) ?? $text;
+
+        if ($paren !== $text) {
+            return $paren;
+        }
+
+        return preg_replace('/\s+(?<![\p{L}\p{N}\/])'.$t.'B\s*'.$t.'\/\s*'.$t.'S'.$t.$tail, '$1', $text) ?? $text;
     }
 
     /**
@@ -367,25 +458,44 @@ final class ExamDocxParser
         $key = '';
 
         foreach ($blocks as $block) {
-            $runs = $block['runs'] ?? [];
-            $count = count($runs);
+            // Teks disusun ulang per karakter beserta warnanya: Word sering memecah "(B/S)" menjadi beberapa run
+            // (ejaan, revisi, format), jadi pengecekan antar-run saja kadang gagal.
+            $chars = [];
+            $red = [];
 
-            for ($i = 0; $i < $count; $i++) {
-                if (! $runs[$i]['red']) {
-                    continue;
+            foreach ($block['runs'] ?? [] as $run) {
+                foreach (mb_str_split((string) $run['t']) as $ch) {
+                    $chars[] = $ch;
+                    $red[] = (bool) $run['red'];
                 }
+            }
 
-                $letter = mb_strtoupper(trim($runs[$i]['t']));
-                $before = $i > 0 ? $runs[$i - 1]['t'] : '';
-                $after = $i + 1 < $count ? $runs[$i + 1]['t'] : '';
+            $line = implode('', $chars);
 
-                // "(B/" + [S merah] + ")"  atau  "(" + [B merah] + "/S)"
-                if ($letter === 'S' && preg_match('/\(\s*B\s*\/\s*$/u', $before) === 1) {
-                    $key = 'S';
-                } elseif ($letter === 'B' && preg_match('/^\s*\/\s*S\s*\)/u', $after) === 1) {
-                    $key = 'B';
-                } elseif (in_array($letter, ['BENAR', 'SALAH'], true)) {
-                    $key = $letter[0];
+            if (preg_match_all('/\(?\s*([BS])\s*[\/|]\s*([BS])\s*\)?/iu', $line, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER) > 0) {
+                $last = end($m);
+                $first = mb_strlen(substr($line, 0, $last[1][1]));
+                $second = mb_strlen(substr($line, 0, $last[2][1]));
+
+                $last[1][0] = mb_strtoupper($last[1][0]);
+                $last[2][0] = mb_strtoupper($last[2][0]);
+
+                if ($last[1][0] !== $last[2][0]) {
+                    $a = $red[$first] ?? false;
+                    $b = $red[$second] ?? false;
+
+                    if ($a xor $b) {
+                        $key = $a ? $last[1][0] : $last[2][0];
+
+                        continue;
+                    }
+                }
+            }
+
+            // Cadangan: kata BENAR/SALAH atau huruf tunggal B/S yang berwarna merah.
+            foreach ($block['runs'] ?? [] as $run) {
+                if ($run['red'] && in_array(mb_strtoupper(trim((string) $run['t'])), ['BENAR', 'SALAH'], true)) {
+                    $key = mb_strtoupper(trim((string) $run['t']))[0];
                 }
             }
         }
@@ -446,9 +556,39 @@ final class ExamDocxParser
     }
 
     /** Buang tag <b>/<i>/<u> yang tidak berpasangan (mis. pemisah ";" yang dicetak miring terpecah dua). */
+    /**
+     * Pecah isi baris pengecoh: dipisah titik koma, dan tiap gambar yang berdiri sendiri menjadi satu pengecoh.
+     *
+     * @return list<string>
+     */
+    private function distractorList(string $tail): array
+    {
+        $out = [];
+
+        foreach (explode(';', $tail) as $part) {
+            $part = trim($part);
+
+            if ($part === '') {
+                continue;
+            }
+
+            $rest = trim(preg_replace('/⟦IMG:[^⟧]*⟧/u', '', $part) ?? $part);
+
+            if ($rest === '' && preg_match_all('/⟦IMG:[^⟧]*⟧/u', $part, $m) > 0) {
+                array_push($out, ...$m[0]);
+
+                continue;
+            }
+
+            $out[] = $this->balanceTags($part);
+        }
+
+        return $out;
+    }
+
     private function balanceTags(string $text): string
     {
-        foreach (['b', 'i', 'u'] as $t) {
+        foreach (['b', 'i', 'u', 'sub', 'sup'] as $t) {
             $open = substr_count(strtolower($text), "<$t>");
             $close = substr_count(strtolower($text), "</$t>");
 

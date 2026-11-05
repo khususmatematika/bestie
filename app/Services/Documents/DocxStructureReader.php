@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Documents;
 
+use App\Services\Rendering\MathRaster;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
@@ -28,6 +29,9 @@ final class DocxStructureReader
     private const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 
     private const NS_V = 'urn:schemas-microsoft-com:vml';
+
+    /** Awalan path media buatan: tabel Word yang digambar ulang menjadi PNG. */
+    public const TABLE_PREFIX = 'generated/table-';
 
     private const MAX_XML_BYTES = 30 * 1024 * 1024;
 
@@ -71,9 +75,24 @@ final class DocxStructureReader
         $xpath = $this->xpath($document);
         $blocks = [];
 
-        foreach ($xpath->query('//w:body/w:p') ?: [] as $paragraph) {
-            if ($paragraph instanceof DOMElement) {
-                $blocks[] = $this->block($paragraph, $xpath);
+        $tables = 0;
+
+        foreach ($xpath->query('//w:body/*') ?: [] as $node) {
+            if (! $node instanceof DOMElement || $node->namespaceURI !== self::NS_W) {
+                continue;
+            }
+
+            if ($node->localName === 'p') {
+                $blocks[] = $this->block($node, $xpath);
+            } elseif ($node->localName === 'tbl') {
+                $tables++;
+
+                // Tabel dijadikan gambar (diisi saat media() dipanggil) agar tetap terbaca di CBT dan tampilan web.
+                if ($this->convertibleTable($node, $xpath)) {
+                    $path = self::TABLE_PREFIX.$tables.'.png';
+                    $token = '⟦IMG:'.$path.'⟧';
+                    $blocks[] = ['text' => $token, 'rich' => $token, 'bold' => false, 'list' => null, 'runs' => [], 'images' => [$path]];
+                }
             }
         }
 
@@ -85,6 +104,10 @@ final class DocxStructureReader
      */
     public function media(string $docxPath, string $zipPath, int $maxBytes = 5 * 1024 * 1024): ?string
     {
+        if (str_starts_with($zipPath, self::TABLE_PREFIX)) {
+            return $this->tableImage($docxPath, (int) substr($zipPath, strlen(self::TABLE_PREFIX)));
+        }
+
         $zip = new ZipArchive;
 
         if ($zip->open($docxPath) !== true) {
@@ -103,6 +126,104 @@ final class DocxStructureReader
             return is_string($bytes) ? $bytes : null;
         } finally {
             $zip->close();
+        }
+    }
+
+    /**
+     * Tabel yang berisi daftar bernomor (naskah yang ditata dengan tabel) tidak diubah menjadi gambar.
+     */
+    private function convertibleTable(DOMElement $table, DOMXPath $xpath): bool
+    {
+        return ($xpath->query('.//w:numPr/w:numId', $table)?->length ?? 0) === 0;
+    }
+
+    private function tableImage(string $docxPath, int $number): ?string
+    {
+        $zip = new ZipArchive;
+
+        if ($number < 1 || $zip->open($docxPath) !== true) {
+            return null;
+        }
+
+        try {
+            $document = $this->part($zip, 'word/document.xml', true);
+        } finally {
+            $zip->close();
+        }
+
+        if ($document === null) {
+            return null;
+        }
+
+        $xpath = $this->xpath($document);
+        $table = $xpath->query('//w:body/w:tbl')?->item($number - 1);
+
+        if (! $table instanceof DOMElement) {
+            return null;
+        }
+
+        $this->relationships = [];
+        $rows = [];
+
+        foreach ($xpath->query('./w:tr', $table) ?: [] as $tr) {
+            $row = [];
+
+            foreach ($xpath->query('./w:tc', $tr) ?: [] as $tc) {
+                $span = $xpath->query('./w:tcPr/w:gridSpan', $tc)?->item(0);
+                $lines = [];
+                $bold = true;
+                $any = false;
+
+                foreach ($xpath->query('./w:p', $tc) ?: [] as $p) {
+                    if (! $p instanceof DOMElement) {
+                        continue;
+                    }
+
+                    $runs = [];
+                    $images = [];
+                    $boldRuns = 0;
+                    $textRuns = 0;
+                    $this->collect($p, $xpath, $runs, $images, $boldRuns, $textRuns);
+                    $line = '';
+
+                    foreach ($runs as $run) {
+                        $t = preg_replace('/⟦IMG:[^⟧]*⟧/u', '', $run['t']) ?? $run['t'];
+                        $t = str_replace("\t", ' ', $t);
+                        $line .= match (true) {
+                            ($run['sup'] ?? false) && trim($t) !== '' => '\\(^{'.$t.'}\\)',
+                            ($run['sub'] ?? false) && trim($t) !== '' => '\\(_{'.$t.'}\\)',
+                            default => $t,
+                        };
+                    }
+
+                    if (trim($line) !== '') {
+                        $any = true;
+                        $bold = $bold && $textRuns > 0 && $boldRuns === $textRuns;
+                    }
+
+                    $lines[] = trim($line);
+                }
+
+                $row[] = [
+                    'text' => implode("\n", $lines),
+                    'span' => $span instanceof DOMElement ? max(1, (int) $span->getAttributeNS(self::NS_W, 'val')) : 1,
+                    'bold' => $any && $bold,
+                ];
+            }
+
+            if ($row !== []) {
+                $rows[] = $row;
+            }
+        }
+
+        if ($rows === []) {
+            return null;
+        }
+
+        try {
+            return (new MathRaster)->table($rows)['png'];
+        } catch (\Throwable) {
+            return null;
         }
     }
 
@@ -243,7 +364,7 @@ final class DocxStructureReader
         $groups = [];
 
         foreach ($runs as $run) {
-            $flags = [(bool) ($run['b'] ?? false), (bool) ($run['i'] ?? false), (bool) ($run['u'] ?? false)];
+            $flags = [(bool) ($run['b'] ?? false), (bool) ($run['i'] ?? false), (bool) ($run['u'] ?? false), (bool) ($run['sub'] ?? false), (bool) ($run['sup'] ?? false)];
             $last = array_key_last($groups);
 
             if ($last !== null && $groups[$last]['f'] === $flags) {
@@ -269,7 +390,7 @@ final class DocxStructureReader
             preg_match('/^(\s*)(.*?)(\s*)$/us', $text, $m);
             $inner = $m[2];
 
-            foreach (['b', 'i', 'u'] as $k => $tag) {
+            foreach (['b', 'i', 'u', 'sub', 'sup'] as $k => $tag) {
                 if ($group['f'][$k]) {
                     $inner = "<{$tag}>{$inner}</{$tag}>";
                 }
@@ -355,6 +476,8 @@ final class DocxStructureReader
         $bold = false;
         $italic = false;
         $underline = false;
+        $sup = false;
+        $sub = false;
 
         if ($props instanceof DOMElement) {
             $b = $xpath->query('./w:b', $props)?->item(0);
@@ -363,9 +486,13 @@ final class DocxStructureReader
             $italic = $i instanceof DOMElement && ! in_array($i->getAttributeNS(self::NS_W, 'val'), ['0', 'false'], true);
             $u = $xpath->query('./w:u', $props)?->item(0);
             $underline = $u instanceof DOMElement && ! in_array($u->getAttributeNS(self::NS_W, 'val'), ['none', '0', 'false'], true);
+            $va = $xpath->query('./w:vertAlign', $props)?->item(0);
+            $vert = $va instanceof DOMElement ? $va->getAttributeNS(self::NS_W, 'val') : '';
+            $sup = $vert === 'superscript';
+            $sub = $vert === 'subscript';
         }
 
-        $runs[] = ['t' => $text, 'red' => $this->isRed($xpath->query('./w:rPr/w:color', $run)?->item(0)), 'b' => $bold, 'i' => $italic, 'u' => $underline];
+        $runs[] = ['t' => $text, 'red' => $this->isRed($xpath->query('./w:rPr/w:color', $run)?->item(0)), 'b' => $bold, 'i' => $italic, 'u' => $underline, 'sub' => $sub, 'sup' => $sup];
 
         if (trim($text) !== '') {
             $textRuns++;

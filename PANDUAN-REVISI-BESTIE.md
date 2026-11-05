@@ -269,3 +269,53 @@ Di halaman telaah validator, pernyataan (kiri) dihubungkan dengan jawaban benarn
 - Menu **Penugasan Mengajar** langsung menampilkan semua mapel aktif per kelas beserta fasenya, urut abjad nama mapel. Admin tinggal memilih guru pada tiap baris (bisa lebih dari satu guru; ikon X melepas guru). Tersedia pencarian, filter "Belum ada guru", pilihan semester, dan "Salin dari semester lain" (rollover). Semester arsip hanya-baca.
 
 Pembaruan: setiap mapel-kelas hanya punya **satu guru** (dropdown "Pilih guru…"; memilih guru lain menggantikan yang lama, memilih kosong melepas). Di atas tabel tampil ringkasan: total mapel-kelas, penugasan terisi, dan yang belum ada guru.
+
+## Naskah untuk CBT sekolah
+
+Setelah paket berstatus **Fix/Terkunci**, panel Unduhan (guru dan validator) menampilkan **Unduh naskah CBT (DOCX)**, berformat "Template Ujian CBT" sekolah: `@META-NOMOR`, `@META-JENIS`, `@META-MATERI`, `@META-NILAI` (bobot), `@KONTEN-SOAL`, `@KONTEN-OPSI` (daftar huruf), `@META-KUNCI`, `@KONTEN-KUNCI`, `@KONTEN-PERNYATAAN-n`, `@PERNYATAAN-KUNCI-n`.
+
+Pemetaan jenis: Pilihan ganda → PG; PG kompleks → PGK (kunci dipisah koma); Benar/Salah → BENAR SALAH (satu pernyataan atau beberapa); Isian dan Uraian → ESSAY (kunci/pedoman penskoran pada `@KONTEN-KUNCI`); **Menjodohkan → ESSAY** (template CBT tidak punya jenis menjodohkan; pasangan ditulis pada soal dan kunci). Gambar diletakkan pada paragraf sendiri; rumus berupa Equation Word (template CBT menyarankan gambar untuk rumus, jadi periksa hasilnya saat unggah pertama).
+
+## Subskrip, superskrip, rumus, dan gambar pada naskah CBT
+
+- **Subskrip/superskrip** dari Word (mis. H₂O, x²) ikut terbaca (tag `<sub>`/`<sup>`), tampil pada telaah, dan tertulis kembali sebagai subskrip/superskrip Word pada naskah final dan naskah CBT. Di editor soal: tombol **x₂** dan **x²** (atau Ctrl+= dan Ctrl+Shift+=).
+- **Rumus**: Equation Word otomatis terbaca dan tampil (KaTeX). Di editor ada tombol **∑ Rumus** berisi palet (pecahan, akar, pangkat, indeks, sigma, integral, limit, logaritma, trigonometri, simbol ≤ ≥ ≠ π θ dst.) yang menyisipkan rumus di posisi kursor; pratinjau tampil di bawah kolom.
+- **Naskah CBT**: bila soal bergambar, `@KONTEN-SOAL:` berdiri sendiri, gambar tepat di bawahnya, lalu teks soal di bawah gambar.
+
+## Pengecoh gambar, tabel Word, dan rumus pada naskah CBT
+
+1. **Pengecoh menjodohkan berupa gambar** kini terbaca. Baris `Pengecoh:` boleh kosong dan gambarnya diletakkan di baris/paragraf berikutnya, atau gambar langsung di baris yang sama. Setiap gambar dihitung sebagai satu pengecoh.
+2. **Tabel Word** kini dibaca saat unggah naskah: tabel digambar ulang menjadi gambar PNG (font STIX di `resources/fonts`) dan menjadi gambar milik soal tersebut, sehingga tampil di web, kisi-kisi, dan CBT. Tabel yang berisi daftar bernomor (naskah yang ditata dengan tabel) tidak diubah.
+3. **Naskah template CBT** (paket Fix): rumus `\( … \)` digambar menjadi gambar PNG sebaris (sejajar baris teks), bukan Equation Word, sehingga terbaca CBT sekolah. Subskrip/superskrip tetap teks biasa.
+4. Lisensi font: `resources/fonts/LICENSE_STIX` ikut disertakan.
+
+Catatan: soal lama yang tabelnya sudah terlanjur hilang perlu diunggah ulang agar tabelnya terbaca.
+
+## Soal bernomor/berbutir di dalam soal, dan kunci Benar/Salah
+
+1. **Daftar di dalam soal** (bullet, angka 1. 2., huruf a. b., romawi) kini terbaca sebagai bagian soal dengan label ditulis ulang (nomor otomatis Word tidak ada di teks mentah). Daftar angka tingkat 0 yang berbeda dari nomor soal tidak lagi dianggap soal baru pada PG/PG kompleks/menjodohkan. Daftar huruf kecil/bersarang sebelum pilihan A–E menjadi bagian soal, bukan pilihan.
+2. **Kunci Benar/Salah**: "(B/S)" dibaca per karakter beserta warnanya, sehingga tetap terbaca walau Word memecahnya menjadi beberapa potongan (ejaan, subskrip, revisi).
+3. **Template naskah**: bagian Benar/Salah kini berupa soal "Tentukan kebenaran pernyataan berikut." dengan pernyataan berhuruf A, B, C, masing-masing diakhiri "(B/S)" (contoh dengan H₂O dan Na⁺). Tes template diperbarui (kunci `A=B; B=S`).
+
+## Batas gambar per soal
+
+Soal menjodohkan bergambar (5 pasang = 10 gambar + pengecoh) terpotong karena batas 8 gambar per soal pada unggah naskah, sehingga pasangan E dan pengecoh tidak terbaca. Batas dinaikkan menjadi 30 gambar per soal (sama dengan batas tempel gambar) dan 300 per paket; gambar yang melebihi batas dihitung sebagai dilewati.
+
+## Menjodohkan: naskah final seperti BESTIE (tanpa tali) dan tanpa gambar ganda
+
+1. **Naskah final Word**: soal menjodohkan ditata dua kolom tanpa garis, sama seperti tampilan BESTIE tetapi tanpa tali: pernyataan A, B, C di kiri, pilihan jawaban (pasangan benar + pengecoh, urutan tidak membocorkan kunci) di kanan. Pilihan bergambar diberi nomor (1., 2., …) yang dipakai kunci ("A = pilihan 2").
+2. **Gambar ganda**: gambar yang hanya dirujuk oleh kunci/pilihan (menjodohkan gambar-gambar atau gambar-teks) tidak lagi ditampilkan sekali lagi sebagai galeri di bawah soal, baik di web maupun di naskah Word. Yang tampil hanya di bagian bertali (web) atau kolom pilihan (Word).
+
+## Penanda Benar/Salah lebih toleran
+
+"(B/S)" kini dikenali walau ada spasi ganda, NBSP, tab, spasi di dalam tanda kurung ("( B / S )"), huruf kecil ("(b/s)"), titik setelahnya, atau tanpa tanda kurung di akhir kalimat. Kunci tetap diambil dari huruf berwarna merah; bila seluruh "(B/S)" berwarna merah (ambigu) atau tidak ada yang merah, muncul peringatan agar guru menandai ulang.
+
+## Pemilih berkas baru (FilePicker)
+
+Tombol "Choose File" bawaan browser yang tipis diganti komponen `FilePicker.vue`: kotak putus-putus dengan ikon, tombol "Pilih berkas" yang jelas, dukungan tarik-lepas, nama dan ukuran berkas terpilih (kotak berubah hijau), serta tautan "Hapus pilihan". Dipakai pada unggah kisi-kisi/naskah di halaman paket, unggah ulang naskah revisi, dan impor arsip admin.
+
+## Letak "Unggah / ganti berkas"
+
+Pada halaman paket guru, kartu "Unggah / ganti berkas" dipindah ke atas daftar nomor soal, sejajar (dua kolom) dengan kartu "Kirim ke validator". Daftar berkas yang sudah diunggah tetap di kolom kanan bawah.
+
+Pembaruan: bagian atas halaman paket guru kini tiga kolom sejajar — **Kisi-kisi**, **Naskah soal**, dan **Kirim ke validator** (layar sempit menumpuk ke bawah).

@@ -236,7 +236,7 @@ final class PackageDocument
         $doc->runs([['text' => $item->number.'. ', 'bold' => true], ...$doc->richRuns($stem, [], $loader)], ['align' => 'both', 'after' => 60]);
 
         // Gambar yang tidak dirujuk penanda pada teks ditempatkan di bawah soal.
-        preg_match_all('/⟦img:(\d+)⟧/u', $stem.' '.implode(' ', array_filter((array) $item->options, 'is_string')), $used);
+        preg_match_all('/⟦img:(\d+)⟧/u', $stem.' '.implode(' ', array_filter((array) $item->options, 'is_string')).' '.(string) $item->answer_key, $used);
 
         foreach ((array) ($item->images ?? []) as $id) {
             if (! in_array((string) $id, $used[1], true) && ($img = $loader((int) $id)) !== null) {
@@ -250,25 +250,28 @@ final class PackageDocument
             }
         } elseif ($item->type === QuestionType::BenarSalah) {
             $doc->paragraph('Benar / Salah', ['italic' => true, 'indent' => 0.8, 'size' => 10]);
+        } elseif ($item->type === QuestionType::Menjodohkan) {
+            // Seperti tampilan BESTIE tanpa tali: pernyataan di kolom kiri, pilihan jawaban (pasangan benar + pengecoh,
+            // tanpa membocorkan urutan kunci) di kolom kanan. Pilihan bergambar diberi nomor agar dapat dirujuk kunci.
+            $choices = MatchingKey::parse((string) $item->answer_key)['choices'];
+            $numbered = str_contains(implode(' ', $choices), '⟦img:');
+            $statements = array_values(array_filter((array) $item->options, static fn (mixed $v): bool => trim((string) $v) !== ''));
+            $letters = array_keys(array_filter((array) $item->options, static fn (mixed $v): bool => trim((string) $v) !== ''));
+            $rows = [];
+
+            for ($i = 0, $n = max(count($statements), count($choices)); $i < $n; $i++) {
+                $rows[] = [
+                    isset($statements[$i]) ? $letters[$i].'. '.$statements[$i] : '',
+                    isset($choices[$i]) ? ($numbered ? ($i + 1).'. ' : '').$choices[$i] : '',
+                ];
+            }
+
+            if ($rows !== []) {
+                $doc->columns(['Pernyataan', 'Pilihan jawaban'], $rows, [46, 54], $loader);
+            }
         } elseif ($item->type->hasOptions()) {
             foreach ((array) $item->options as $letter => $text) {
                 $doc->runs([['text' => $letter.'. '], ...$doc->richRuns((string) $text, [], $loader)], ['indent' => 0.8, 'after' => 20]);
-            }
-
-            // Menjodohkan: daftar pilihan jawaban (pasangan benar + pengecoh), tanpa membocorkan urutan kunci.
-            // Bila ada pilihan bergambar, pilihan diberi nomor (1., 2., …) satu per baris agar dapat dirujuk.
-            if ($item->type === QuestionType::Menjodohkan) {
-                $choices = MatchingKey::parse((string) $item->answer_key)['choices'];
-
-                if ($choices !== [] && str_contains(implode(' ', $choices), '⟦img:')) {
-                    $doc->paragraph('Pilihan jawaban:', ['italic' => true, 'indent' => 0.8, 'after' => 20, 'size' => 10]);
-
-                    foreach ($choices as $i => $choice) {
-                        $doc->runs([['text' => ($i + 1).'. '], ...$doc->richRuns($choice, [], $loader)], ['indent' => 1.2, 'after' => 20]);
-                    }
-                } elseif ($choices !== []) {
-                    $doc->runs([['text' => 'Pilihan jawaban: ', 'italic' => true], ...$doc->richRuns(implode('; ', $choices), ['italic' => true], $loader)], ['indent' => 0.8, 'after' => 20]);
-                }
             }
         } else {
             $doc->paragraph($item->type->label().$bobot, ['italic' => true, 'indent' => 0.8, 'size' => max(8, 10)]);

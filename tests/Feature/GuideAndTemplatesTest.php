@@ -64,9 +64,9 @@ class GuideAndTemplatesTest extends TestCase
         );
         $this->assertSame('C', $read['items'][1]['answer_key']);
         $this->assertSame('B,D', $read['items'][3]['answer_key']);
-        $this->assertSame('B', $read['items'][4]['answer_key']);
+        $this->assertSame('A=B; B=S', $read['items'][4]['answer_key']);
         $this->assertSame("A=Jawa Timur; B=Jawa Barat; C=Jawa Tengah; D=Bali; E=Nusa Tenggara Barat\nPengecoh: Sulawesi Selatan; Kalimantan Timur", $read['items'][6]['answer_key']);
-        $this->assertSame('S', $read['items'][5]['answer_key']);
+        $this->assertSame('A=B; B=S; C=B', $read['items'][5]['answer_key']);
 
         @unlink($path);
     }

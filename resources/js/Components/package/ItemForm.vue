@@ -104,7 +104,7 @@ function trackFocus(e: FocusEvent): void {
     if (name) activeField.value = name;
 }
 
-function applyFormat(tag: 'b' | 'i' | 'u'): void {
+function applyFormat(tag: 'b' | 'i' | 'u' | 'sub' | 'sup'): void {
     const name = activeField.value;
     const el = name ? (document.querySelector(`[data-fmt="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | null) : null;
     if (!name || !el) return;
@@ -128,13 +128,76 @@ function applyFormat(tag: 'b' | 'i' | 'u'): void {
 }
 
 function onFormatKey(e: KeyboardEvent): void {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
-    const k = e.key.toLowerCase();
-    if (k !== 'b' && k !== 'i' && k !== 'u') return;
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
     if (!(e.target as HTMLElement | null)?.getAttribute?.('data-fmt')) return;
+
+    // Seperti Word: Ctrl+= subscript, Ctrl+Shift+= superscript; Ctrl+B/I/U tebal/miring/garis bawah.
+    let tag: 'b' | 'i' | 'u' | 'sub' | 'sup' | null = null;
+    const k = e.key.toLowerCase();
+
+    if (!e.shiftKey && (k === 'b' || k === 'i' || k === 'u')) tag = k;
+    else if (k === '=' && !e.shiftKey) tag = 'sub';
+    else if (k === '+' || (k === '=' && e.shiftKey)) tag = 'sup';
+
+    if (tag === null) return;
     e.preventDefault();
     activeField.value = (e.target as HTMLElement).getAttribute('data-fmt');
-    applyFormat(k);
+    applyFormat(tag);
+}
+
+// Palet rumus: "|" menandai posisi kursor. Di luar \( \) rumus otomatis dibungkus \( \).
+const showMath = ref(false);
+const MATH_TOOLS: { label: string; tex: string; title: string }[] = [
+    { label: 'a/b', tex: '\\frac{|}{}', title: 'Pecahan' },
+    { label: '√', tex: '\\sqrt{|}', title: 'Akar kuadrat' },
+    { label: 'ⁿ√', tex: '\\sqrt[|]{}', title: 'Akar pangkat n' },
+    { label: 'xⁿ', tex: '^{|}', title: 'Pangkat' },
+    { label: 'xₙ', tex: '_{|}', title: 'Indeks' },
+    { label: '∑', tex: '\\sum_{|}^{}', title: 'Sigma' },
+    { label: '∫', tex: '\\int_{|}^{}', title: 'Integral' },
+    { label: 'lim', tex: '\\lim_{x \\to |}', title: 'Limit' },
+    { label: 'log', tex: '\\log_{|}', title: 'Logaritma' },
+    { label: 'sin', tex: '\\sin |', title: 'Sinus' },
+    { label: 'cos', tex: '\\cos |', title: 'Cosinus' },
+    { label: 'tan', tex: '\\tan |', title: 'Tangen' },
+    { label: '°', tex: '^{\\circ}|', title: 'Derajat' },
+    { label: '±', tex: '\\pm |', title: 'Plus minus' },
+    { label: '×', tex: '\\times |', title: 'Kali' },
+    { label: '÷', tex: '\\div |', title: 'Bagi' },
+    { label: '≤', tex: '\\leq |', title: 'Kurang dari sama dengan' },
+    { label: '≥', tex: '\\geq |', title: 'Lebih dari sama dengan' },
+    { label: '≠', tex: '\\neq |', title: 'Tidak sama dengan' },
+    { label: '≈', tex: '\\approx |', title: 'Hampir sama dengan' },
+    { label: 'π', tex: '\\pi |', title: 'Pi' },
+    { label: 'θ', tex: '\\theta |', title: 'Theta' },
+    { label: 'α', tex: '\\alpha |', title: 'Alfa' },
+    { label: 'β', tex: '\\beta |', title: 'Beta' },
+    { label: '∞', tex: '\\infty |', title: 'Tak hingga' },
+    { label: '→', tex: '\\rightarrow |', title: 'Panah' },
+    { label: '( )', tex: '\\left(|\\right)', title: 'Kurung besar' },
+    { label: 'x̄', tex: '\\overline{|}', title: 'Garis atas' },
+];
+
+function insertMath(tex: string): void {
+    const name = activeField.value ?? 'stem';
+    const el = document.querySelector(`[data-fmt="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
+    if (!el) return;
+
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? start;
+    const value = getField(name);
+    const before = value.slice(0, start);
+    const inside = (before.match(/\\\(/g)?.length ?? 0) > (before.match(/\\\)/g)?.length ?? 0);
+    const picked = value.slice(start, end);
+    const body = tex.includes('|') ? tex.replace('|', picked) : tex;
+    const snippet = inside ? body : `\\(${body}\\)`;
+    const caretInSnippet = (inside ? 0 : 2) + (tex.includes('|') ? tex.indexOf('|') + picked.length : body.length);
+
+    setField(name, before + snippet + value.slice(end));
+    void nextTick(() => {
+        el.focus();
+        el.setSelectionRange(start + caretInSnippet, start + caretInSnippet);
+    });
 }
 
 const form = useForm({
@@ -246,12 +309,19 @@ function pickFile(event: Event): void {
                 <button type="button" class="btn-secondary px-2.5 py-1 text-sm font-bold" title="Tebal (Ctrl+B)" @mousedown.prevent @click="applyFormat('b')">B</button>
                 <button type="button" class="btn-secondary px-2.5 py-1 text-sm italic" title="Miring (Ctrl+I)" @mousedown.prevent @click="applyFormat('i')">I</button>
                 <button type="button" class="btn-secondary px-2.5 py-1 text-sm underline" title="Garis bawah (Ctrl+U)" @mousedown.prevent @click="applyFormat('u')">U</button>
+                <button type="button" class="btn-secondary px-2.5 py-1 text-sm" title="Subskrip (Ctrl+=)" @mousedown.prevent @click="applyFormat('sub')">x<sub>2</sub></button>
+                <button type="button" class="btn-secondary px-2.5 py-1 text-sm" title="Superskrip (Ctrl+Shift+=)" @mousedown.prevent @click="applyFormat('sup')">x<sup>2</sup></button>
+                <button type="button" class="btn-secondary px-2.5 py-1 text-sm font-semibold" :aria-expanded="showMath" title="Sisipkan rumus matematika" @mousedown.prevent @click="showMath = !showMath">∑ Rumus</button>
                 <span class="text-xs text-ink-faint">Blok teks pada kolom soal, pilihan, atau kunci, lalu klik tombol atau tekan Ctrl+B / I / U.</span>
+            </div>
+            <div v-if="showMath" class="flex flex-wrap gap-1.5 rounded-xl border border-line bg-surface-2 p-2" role="toolbar" aria-label="Rumus matematika">
+                <button v-for="t in MATH_TOOLS" :key="t.title" type="button" class="btn-secondary min-w-9 px-2 py-1 text-sm" :title="t.title" @mousedown.prevent @click="insertMath(t.tex)">{{ t.label }}</button>
+                <p class="w-full text-xs text-ink-faint">Klik kolom yang ingin diisi, lalu pilih simbol; rumus ditulis di antara \( dan \) dan tampil pada pratinjau. Rumus dari Word (Equation) otomatis terbaca.</p>
             </div>
             <FormField v-slot="{ id, invalid }" label="Teks soal" :error="form.errors.stem" hint="Gambar: salin (Ctrl+V) lalu tempel langsung di kolom ini, termasuk pada pilihan jawaban, pernyataan menjodohkan, dan kunci/pengecoh. Tebal/miring/garis bawah: blok teks lalu Ctrl+B / I / U. Rumus ditulis di antara \\( dan \\) dengan sintaks LaTeX, mis. \\(\\frac{15}{56}\\). Penanda ⟦img:…⟧ adalah gambar; hapus penanda untuk membuang gambar dari teks." required>
                 <textarea :id="id" v-model="form.stem" data-fmt="stem" rows="5" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'stem')" />
             </FormField>
-            <div v-if="/\\\(|⟦img:|<[biu]>/.test(form.stem)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3">
+            <div v-if="/\\\(|⟦img:|<(?:b|i|u|sub|sup)>/.test(form.stem)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Pratinjau</p>
                 <p class="mt-1 font-serif text-ink"><MathText :text="form.stem" :images="imageMap" /></p>
             </div>
@@ -263,7 +333,7 @@ function pickFile(event: Event): void {
                     <input v-model="form.options[letter]" :data-fmt="letter" class="input font-serif" :aria-label="`Pilihan ${letter}`" @paste="onPaste($event, letter)" />
                 </div>
                 <p v-if="form.errors.options" class="error-text" role="alert">{{ form.errors.options }}</p>
-                <div v-if="LETTERS.some((l) => /⟦img:|<[biu]>|\\\(/.test(form.options[l] ?? ''))" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink">
+                <div v-if="LETTERS.some((l) => /⟦img:|<(?:b|i|u|sub|sup)>|\\\(/.test(form.options[l] ?? ''))" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink">
                     <template v-for="letter in LETTERS" :key="letter">
                         <p v-if="(form.options[letter] ?? '') !== ''" class="font-serif"><b class="mr-1 font-sans">{{ letter }}.</b><MathText :text="form.options[letter]" :images="imageMap" /></p>
                     </template>
@@ -275,7 +345,7 @@ function pickFile(event: Event): void {
                     <textarea v-if="form.type === 'menjodohkan'" :id="id" v-model="form.answer_key" data-fmt="answer_key" rows="3" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'answer_key')" />
                     <input v-else :id="id" v-model="form.answer_key" class="input" :class="{ 'input-error': invalid }" />
                 </FormField>
-                <div v-if="form.type === 'menjodohkan' && /⟦img:|<[biu]>/.test(form.answer_key)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink sm:col-span-2">
+                <div v-if="form.type === 'menjodohkan' && /⟦img:|<(?:b|i|u|sub|sup)>/.test(form.answer_key)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink sm:col-span-2">
                     <MathText :text="form.answer_key" :images="imageMap" />
                 </div>
                 <p v-if="matching" class="self-end rounded-xl px-3 py-2 text-xs font-semibold" :class="matching.choices > matching.statements ? 'bg-success-50 text-success-700 dark:bg-success-500/10' : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10'" role="status">

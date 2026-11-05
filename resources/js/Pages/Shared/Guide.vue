@@ -35,7 +35,7 @@ const steps: Record<Role, Step[]> = {
         { title: 'Periksa dan perbaiki per nomor', text: 'Buka tiap nomor: ubah teks, pilihan, kunci, atau indikator. Rumus ditulis di antara \\( dan \\); gambar cukup ditempel (Ctrl+V) di kotak soal. Simpan sebagai draf kapan saja.' },
         { title: 'Kirim ke validator', text: 'Setelah semua nomor lengkap, kirim paket. Anda mendapat notifikasi saat validator menyetujui atau meminta perubahan.' },
         { title: 'Revisi bila diminta', text: 'Nomor berstatus "Perlu ganti" memuat catatan validator. Perbaiki nomor itu saja, atau unggah ulang naskah revisi; gambar lama otomatis dilepas dan diganti.' },
-        { title: 'Unduh hasil akhir', text: 'Saat semua nomor disetujui, paket berstatus Fix. Unduh naskah final (DOCX, PDF bila tersedia), rekap validasi, atau soal tervalidasi dari panel Unduhan.' },
+        { title: 'Unduh hasil akhir', text: 'Saat semua nomor disetujui, paket berstatus Fix. Unduh naskah final (DOCX, PDF bila tersedia), naskah berformat Template CBT sekolah (siap diunggah ke CBT), rekap validasi, atau soal tervalidasi dari panel Unduhan.' },
     ],
     validator: [
         { title: 'Buka Inbox Telaah', text: 'Paket yang menunggu Anda tampil di Inbox, diurutkan dari yang paling mendesak. Dashboard menampilkan ringkasan dan tenggat.', link: { href: '/validator/inbox', label: 'Inbox Telaah' } },
@@ -69,7 +69,7 @@ const rules = [
     { t: 'Nomor soal', d: 'Daftar bernomor otomatis Word (1., 2., …), berlanjut di seluruh dokumen dan sama dengan "No. Soal" pada kisi-kisi.' },
     { t: 'Pilihan jawaban', d: 'Daftar huruf otomatis A–E, mulai ulang dari A pada tiap soal. Maksimal 5 pilihan.' },
     { t: 'Kunci jawaban', d: 'Beri warna font MERAH pada pilihan yang benar. Pilihan ganda kompleks: beberapa pilihan merah.' },
-    { t: 'Benar/Salah', d: 'Akhiri pernyataan dengan "(B/S)" dan warnai huruf yang benar (B atau S) merah.' },
+    { t: 'Benar/Salah', d: 'Tulis soal, lalu pernyataan berhuruf (A, B, …) di bawahnya. Akhiri tiap pernyataan dengan "(B/S)" dan warnai huruf yang benar (B atau S) merah.' },
     { t: 'Menjodohkan', d: 'Tulis jawaban benar di dalam tanda kurung merah di akhir tiap pernyataan, mis. "Surabaya (Jawa Timur)". Lalu satu baris "Pengecoh: Sulawesi Selatan; Kalimantan Timur" (pisahkan dengan titik koma). Pilihan jawaban harus lebih banyak daripada pernyataan: 5 pernyataan = minimal 6 pilihan.' },
     { t: 'Isian & uraian', d: 'Kunci/pedoman penskoran tidak dibaca dari naskah; isi di BESTIE pada halaman soal.' },
     { t: 'Rumus & gambar', d: 'Rumus: Insert → Equation. Gambar: tempel di bawah teks soal. Keduanya tampil pada telaah dan naskah final.' },

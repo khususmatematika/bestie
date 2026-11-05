@@ -84,6 +84,7 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
     Route::middleware('throttle:30,1')->prefix('packages/{package}/downloads')->name('downloads.')->group(function (): void {
         Route::get('/recap', [DownloadController::class, 'recap'])->name('recap');
         Route::get('/validated', [DownloadController::class, 'validated'])->name('validated');
+        Route::get('/cbt', [DownloadController::class, 'cbt'])->name('cbt');
         Route::post('/final', [DownloadController::class, 'requestFinal'])->name('final');
         Route::get('/export/{export}/{format}', [DownloadController::class, 'export'])->whereIn('format', ['docx', 'pdf'])->name('export');
     });

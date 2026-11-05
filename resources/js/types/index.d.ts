@@ -148,6 +148,7 @@ export interface DownloadsInfo {
     recap_docx_url: string;
     validated_url: string;
     final_url: string;
+    cbt_url: string | null;
     is_final: boolean;
     final: {
         status: 'queued' | 'ready' | 'failed';

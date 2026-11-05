@@ -44,7 +44,8 @@ final class ItemSimilarity
     /** Huruf kecil, tanpa penanda gambar/rumus dan tanda baca; spasi dirapatkan. */
     public static function normalize(string $text): string
     {
-        $text = preg_replace('/⟦[^⟧]*⟧|<\/?[biu]>/iu', ' ', $text) ?? $text;
+        $text = preg_replace('/⟦[^⟧]*⟧/u', ' ', $text) ?? $text;
+        $text = preg_replace('/<\/?(?:b|i|u|sub|sup)>/iu', '', $text) ?? $text;
         $text = str_replace(['\\(', '\\)'], ' ', $text);
         $text = mb_strtolower($text);
         $text = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text) ?? $text;

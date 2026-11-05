@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Download, FileSpreadsheet, FileText, LoaderCircle, PackageCheck } from '@lucide/vue';
+import { Download, FileSpreadsheet, FileText, LoaderCircle, MonitorCheck, PackageCheck } from '@lucide/vue';
 import { onBeforeUnmount, ref, watch } from 'vue';
 import { formatDateTime } from '@/Composables/useFormat';
 import type { DownloadsInfo } from '@/types';
@@ -83,6 +83,12 @@ function requestFinal(): void {
                 </button>
                 <p v-if="downloads.final?.error" class="text-xs text-danger-600">Percobaan sebelumnya gagal: {{ downloads.final.error }}</p>
             </div>
+        </div>
+
+        <div v-if="downloads.cbt_url" class="mt-4 rounded-xl border border-line bg-surface-2 p-4">
+            <p class="mb-1 flex items-center gap-2 text-sm font-semibold text-ink"><MonitorCheck class="size-4 text-primary-600" /> Naskah untuk CBT sekolah</p>
+            <p class="mb-3 text-xs text-ink-soft">Berformat “Template Ujian CBT” (@META-NOMOR, @KONTEN-SOAL, dst.), siap diunggah ke CBT. Soal menjodohkan diekspor sebagai Essay karena template CBT tidak memiliki jenis menjodohkan.</p>
+            <a :href="downloads.cbt_url" class="btn-primary"><Download class="size-4" /> Unduh naskah CBT (DOCX)</a>
         </div>
     </section>
 </template>

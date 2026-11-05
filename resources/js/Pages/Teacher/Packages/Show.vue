@@ -23,6 +23,7 @@ import ItemForm from '@/Components/package/ItemForm.vue';
 import ItemKisi from '@/Components/package/ItemKisi.vue';
 import ItemSoal from '@/Components/package/ItemSoal.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import FilePicker from '@/Components/ui/FilePicker.vue';
 import FormField from '@/Components/ui/FormField.vue';
 import Modal from '@/Components/ui/Modal.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
@@ -199,6 +200,59 @@ function sizeLabel(bytes: number): string {
         </p>
     </section>
 
+    <!-- Aksi paket: kisi-kisi, naskah soal, dan kirim ke validator (tiga kolom sejajar, di atas daftar nomor soal) -->
+    <div v-if="pkg.can_edit" class="mb-6 grid gap-6 lg:grid-cols-3">
+        <!-- Kisi-kisi -->
+        <section class="card p-6">
+            <h2 class="text-base font-bold text-ink">Kisi-kisi</h2>
+            <p class="mt-1 text-sm text-ink-soft">Unggah / ganti berkas kisi-kisi (.docx atau .xlsx).</p>
+            <form class="mt-4 space-y-3" @submit.prevent="submitFiles">
+                <div>
+                    <FilePicker id="f-kisi" v-model="filesForm.kisi_kisi" accept=".xlsx,.docx,.pdf" label="Pilih berkas kisi-kisi" :invalid="!!filesForm.errors.kisi_kisi" />
+                    <p v-if="filesForm.errors.kisi_kisi" class="error-text" role="alert">{{ filesForm.errors.kisi_kisi }}</p>
+                </div>
+                <button type="submit" class="btn-secondary btn-sm" :disabled="!filesForm.kisi_kisi || filesForm.processing"><Upload class="size-3.5" /> Unggah &amp; ekstrak</button>
+                <p class="text-xs"><a href="/templates/kisi-kisi" class="font-semibold text-primary-600 hover:underline">Template kisi-kisi</a></p>
+            </form>
+        </section>
+
+        <!-- Naskah soal -->
+        <section class="card p-6">
+            <h2 class="text-base font-bold text-ink">Naskah soal</h2>
+            <p class="mt-1 text-sm text-ink-soft">Unggah / ganti naskah soal (.docx atau .pdf).</p>
+            <form class="mt-4 space-y-3" @submit.prevent="submitFiles">
+                <div>
+                    <FilePicker id="f-naskah" v-model="filesForm.naskah" accept=".docx,.pdf" label="Pilih berkas naskah" :invalid="!!filesForm.errors.naskah" />
+                    <p v-if="filesForm.errors.naskah" class="error-text" role="alert">{{ filesForm.errors.naskah }}</p>
+                </div>
+                <button type="submit" class="btn-secondary btn-sm" :disabled="!filesForm.naskah || filesForm.processing"><Upload class="size-3.5" /> Unggah &amp; ekstrak</button>
+                <p class="text-xs"><a href="/templates/naskah" class="font-semibold text-primary-600 hover:underline">Template naskah</a></p>
+            </form>
+        </section>
+
+        <!-- Kirim -->
+        <section class="card p-6">
+            <h2 class="text-base font-bold text-ink">Kirim ke validator</h2>
+            <p v-if="!items.length" class="mt-2 text-sm text-ink-soft">Tambahkan nomor soal terlebih dahulu.</p>
+            <p v-else-if="incomplete.length" class="mt-2 flex items-start gap-2 text-sm text-warning-700 dark:text-warning-500">
+                <TriangleAlert class="mt-0.5 size-4 shrink-0" /> {{ incomplete.length }} nomor belum lengkap (teks soal, indikator soal, kunci jawaban, pilihan). Lengkapi dahulu.
+            </p>
+            <form v-else class="mt-3 space-y-4" @submit.prevent="submitPackage">
+                <FormField v-slot="{ id, invalid }" label="Pilih validator" :error="submitForm.errors.validator_id" required>
+                    <select :id="id" v-model="submitForm.validator_id" class="input" :class="{ 'input-error': invalid }">
+                        <option value="" disabled>Pilih validator</option>
+                        <option v-for="v in validators" :key="v.id" :value="v.id">{{ v.name }}{{ v.is_self ? ' (diri sendiri)' : '' }}</option>
+                    </select>
+                </FormField>
+                <p v-if="!validators.length" class="text-xs text-danger-600">Belum ada validator yang sesuai untuk mapel ini. Hubungi admin.</p>
+                <button type="submit" class="btn-primary w-full" :disabled="submitForm.validator_id === '' || submitForm.processing">
+                    <LoaderCircle v-if="submitForm.processing" class="size-4 animate-spin" />
+                    <Send v-else class="size-4" /> Kirim paket
+                </button>
+            </form>
+        </section>
+    </div>
+
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="min-w-0 space-y-6 lg:col-span-2">
             <!-- Butir -->
@@ -266,8 +320,8 @@ function sizeLabel(bytes: number): string {
             <section v-if="pkg.can_revise && needChange.length" class="card p-6">
                 <h2 class="text-base font-bold text-ink">Unggah ulang dari naskah (.docx atau .pdf)</h2>
                 <p class="mt-1 text-sm text-ink-soft">Hanya nomor berstatus “Perlu ganti” yang diperbarui; nomor lain pada berkas diabaikan.</p>
-                <form class="mt-4 flex flex-wrap items-center gap-3" @submit.prevent="submitDocument">
-                    <input type="file" accept=".docx,.pdf" class="min-w-0 max-w-full text-sm" aria-label="Naskah revisi" @change="docForm.naskah = ($event.target as HTMLInputElement).files?.[0] ?? null" />
+                <form class="mt-4 space-y-3" @submit.prevent="submitDocument">
+                    <FilePicker v-model="docForm.naskah" accept=".docx,.pdf" label="Pilih naskah revisi" :invalid="!!docForm.errors.naskah" />
                     <button type="submit" class="btn-primary btn-sm" :disabled="!docForm.naskah || docForm.processing"><Upload class="size-3.5" /> Unggah</button>
                 </form>
                 <p v-if="docForm.errors.naskah" class="error-text" role="alert">{{ docForm.errors.naskah }}</p>
@@ -275,28 +329,6 @@ function sizeLabel(bytes: number): string {
         </div>
 
         <div class="space-y-6">
-            <!-- Kirim -->
-            <section v-if="pkg.can_edit" class="card p-6">
-                <h2 class="text-base font-bold text-ink">Kirim ke validator</h2>
-                <p v-if="!items.length" class="mt-2 text-sm text-ink-soft">Tambahkan nomor soal terlebih dahulu.</p>
-                <p v-else-if="incomplete.length" class="mt-2 flex items-start gap-2 text-sm text-warning-700 dark:text-warning-500">
-                    <TriangleAlert class="mt-0.5 size-4 shrink-0" /> {{ incomplete.length }} nomor belum lengkap (teks soal, indikator soal, kunci jawaban, pilihan). Lengkapi dahulu.
-                </p>
-                <form v-else class="mt-3 space-y-4" @submit.prevent="submitPackage">
-                    <FormField v-slot="{ id, invalid }" label="Pilih validator" :error="submitForm.errors.validator_id" required>
-                        <select :id="id" v-model="submitForm.validator_id" class="input" :class="{ 'input-error': invalid }">
-                            <option value="" disabled>Pilih validator</option>
-                            <option v-for="v in validators" :key="v.id" :value="v.id">{{ v.name }}{{ v.is_self ? ' (diri sendiri)' : '' }}</option>
-                        </select>
-                    </FormField>
-                    <p v-if="!validators.length" class="text-xs text-danger-600">Belum ada validator yang sesuai untuk mapel ini. Hubungi admin.</p>
-                    <button type="submit" class="btn-primary w-full" :disabled="submitForm.validator_id === '' || submitForm.processing">
-                        <LoaderCircle v-if="submitForm.processing" class="size-4 animate-spin" />
-                        <Send v-else class="size-4" /> Kirim paket
-                    </button>
-                </form>
-            </section>
-
             <!-- Berkas -->
             <section class="card p-6">
                 <h2 class="text-base font-bold text-ink">Berkas</h2>
@@ -322,24 +354,6 @@ function sizeLabel(bytes: number): string {
                 </ul>
                 <p v-else class="mt-2 text-sm text-ink-soft">Belum ada berkas.</p>
 
-                <form v-if="pkg.can_edit" class="mt-4 space-y-3 border-t border-line pt-4" @submit.prevent="submitFiles">
-                    <p class="text-xs font-bold uppercase tracking-wide text-ink-faint">Unggah / ganti berkas</p>
-                    <div>
-                        <label class="label" for="f-kisi">Kisi-kisi (.docx atau .xlsx)</label>
-                        <input id="f-kisi" type="file" accept=".xlsx,.docx,.pdf" class="text-sm" @change="filesForm.kisi_kisi = ($event.target as HTMLInputElement).files?.[0] ?? null" />
-                        <p v-if="filesForm.errors.kisi_kisi" class="error-text" role="alert">{{ filesForm.errors.kisi_kisi }}</p>
-                    </div>
-                    <div>
-                        <label class="label" for="f-naskah">Naskah (.docx atau .pdf)</label>
-                        <input id="f-naskah" type="file" accept=".docx,.pdf" class="text-sm" @change="filesForm.naskah = ($event.target as HTMLInputElement).files?.[0] ?? null" />
-                        <p v-if="filesForm.errors.naskah" class="error-text" role="alert">{{ filesForm.errors.naskah }}</p>
-                    </div>
-                    <button type="submit" class="btn-secondary btn-sm" :disabled="(!filesForm.kisi_kisi && !filesForm.naskah) || filesForm.processing"><Upload class="size-3.5" /> Unggah &amp; ekstrak</button>
-                    <div class="flex flex-wrap gap-2 text-xs">
-                        <a href="/templates/kisi-kisi" class="font-semibold text-primary-600 hover:underline">Template kisi-kisi</a>
-                        <a href="/templates/naskah" class="font-semibold text-primary-600 hover:underline">Template naskah</a>
-                    </div>
-                </form>
             </section>
         </div>
     </div>

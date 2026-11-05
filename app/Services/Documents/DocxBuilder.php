@@ -212,6 +212,53 @@ final class DocxBuilder
     }
 
     /**
+     * Tabel dua kolom tanpa garis (mis. menjodohkan: pernyataan di kiri, pilihan jawaban di kanan). Isi sel boleh memuat
+     * rumus, format, dan gambar (⟦img:ID⟧) lewat $images; gambar diperkecil agar muat di kolom.
+     *
+     * @param  list<string>  $headers
+     * @param  list<array{0: string, 1: string}>  $rows
+     * @param  list<int|float>  $widths  persen lebar kolom
+     * @param  (callable(int): (array{bytes: string, ext: string}|null))|null  $images
+     */
+    public function columns(array $headers, array $rows, array $widths, ?callable $images = null, float $indentCm = 0.8): self
+    {
+        $total = 9000;
+        $grid = '<w:gridCol w:w="'.$this->twips($indentCm).'"/>';
+
+        foreach ($widths as $w) {
+            $grid .= '<w:gridCol w:w="'.(int) round($total * $w / 100).'"/>';
+        }
+
+        $xml = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="60" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>'.$grid.'</w:tblGrid>';
+        $cell = function (string $text, int $width, bool $head) use ($images): string {
+            $xml = '<w:tc><w:tcPr><w:tcW w:w="'.$width.'" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>';
+            $runs = array_map(static function (array $r): array {
+                return isset($r['image']) ? $r + ['w' => 3.2, 'h' => 2.4] : $r;
+            }, $this->richRuns($text, $head ? ['italic' => true, 'size' => max(8, $this->sizePt - 2)] : [], $images));
+
+            return $xml.'<w:p>'.$this->paragraphProps(['after' => 40]).implode('', array_map(fn (array $r): string => $this->run($r), $runs)).'</w:p></w:tc>';
+        };
+
+        foreach ([$headers, ...$rows] as $i => $row) {
+            if ($i === 0 && array_filter($row, static fn (string $t): bool => $t !== '') === []) {
+                continue;
+            }
+
+            $xml .= '<w:tr><w:tc><w:tcPr><w:tcW w:w="'.$this->twips($indentCm).'" w:type="dxa"/></w:tcPr><w:p/></w:tc>';
+
+            foreach (array_values($row) as $c => $text) {
+                $xml .= $cell($text, (int) round($total * ($widths[$c] ?? 50) / 100), $i === 0);
+            }
+
+            $xml .= '</w:tr>';
+        }
+
+        $this->body .= $xml.'</w:tbl><w:p><w:pPr><w:spacing w:after="40"/></w:pPr></w:p>';
+
+        return $this;
+    }
+
+    /**
      * Menyisipkan gambar (PNG/JPEG/GIF) sebagai paragraf tersendiri, diskalakan agar tidak melebihi lebar maksimum.
      */
     public function image(string $bytes, string $extension, float $maxWidthCm = 9.0, float $maxHeightCm = 8.0): self
@@ -266,20 +313,20 @@ final class DocxBuilder
      * Memecah teks soal menjadi run: teks biasa, rumus \( LaTeX \) (→ Equation Word) dan penanda ⟦img:ID⟧ (→ gambar inline).
      *
      * @param  array{bold?: bool, italic?: bool, size?: int, color?: string}  $base
-     * @param  (callable(int): (array{bytes: string, ext: string}|null))|null  $images
+     * @param  (callable(int): (array{bytes: string, ext: string, dw?: float, dh?: float, lower?: float}|null))|null  $images
      * @return list<array<string, mixed>>
      */
     public function richRuns(string $text, array $base = [], ?callable $images = null): array
     {
         $runs = [];
-        $fmt = ['bold' => false, 'italic' => false, 'underline' => false];
+        $fmt = ['bold' => false, 'italic' => false, 'underline' => false, 'sub' => false, 'sup' => false];
         $last = 0;
 
         // Penanda format <b> <i> <u> (dan penutupnya) memengaruhi run sesudahnya; rumus & gambar tetap dikenali.
-        preg_match_all('/\\\\\((.+?)\\\\\)|⟦img:(\d+)⟧|<(\/?)([biu])>/ius', $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        preg_match_all('/\\\\\((.+?)\\\\\)|⟦img:(\d+)⟧|<(\/?)(b|i|u|sub|sup)>/ius', $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 
         $style = static function (array $base, array $fmt): array {
-            return array_merge($base, array_filter(['bold' => $fmt['bold'] ?: ($base['bold'] ?? false), 'italic' => $fmt['italic'] ?: ($base['italic'] ?? false), 'underline' => $fmt['underline']], static fn ($v) => $v !== false));
+            return array_merge($base, array_filter(['bold' => $fmt['bold'] ?: ($base['bold'] ?? false), 'italic' => $fmt['italic'] ?: ($base['italic'] ?? false), 'underline' => $fmt['underline'], 'sub' => $fmt['sub'], 'sup' => $fmt['sup']], static fn ($v) => $v !== false));
         };
 
         foreach ($matches as $m) {
@@ -290,7 +337,7 @@ final class DocxBuilder
             }
 
             if (isset($m[4]) && $m[4][1] >= 0 && $m[4][0] !== '') {
-                $key = ['b' => 'bold', 'i' => 'italic', 'u' => 'underline'][mb_strtolower($m[4][0])];
+                $key = ['b' => 'bold', 'i' => 'italic', 'u' => 'underline', 'sub' => 'sub', 'sup' => 'sup'][mb_strtolower($m[4][0])];
                 $fmt[$key] = $m[3][0] !== '/';
             } elseif (($m[1][1] ?? -1) >= 0 && $m[1][0] !== '') {
                 $runs[] = ['math' => $m[1][0]] + $style($base, $fmt);
@@ -298,7 +345,7 @@ final class DocxBuilder
                 $file = $images((int) $m[2][0]);
 
                 if ($file !== null) {
-                    $runs[] = ['image' => $file['bytes'], 'ext' => $file['ext']];
+                    $runs[] = ['image' => $file['bytes'], 'ext' => $file['ext']] + array_intersect_key($file, array_flip(['dw', 'dh', 'lower']));
                 }
             }
 
@@ -466,14 +513,23 @@ final class DocxBuilder
         }
 
         if (isset($r['image'])) {
-            return $this->drawing((string) $r['image'], (string) ($r['ext'] ?? 'png'), (float) ($r['w'] ?? 7.0), (float) ($r['h'] ?? 5.5));
+            // dw/dh: ukuran tampil (px layar) untuk gambar buatan (rumus); lower: turunkan gambar agar garis dasarnya sejajar teks.
+            $maxW = isset($r['dw']) ? (float) $r['dw'] / 37.8 : (float) ($r['w'] ?? 7.0);
+            $maxH = isset($r['dh']) ? (float) $r['dh'] / 37.8 : (float) ($r['h'] ?? 5.5);
+            $drawing = $this->drawing((string) $r['image'], (string) ($r['ext'] ?? 'png'), $maxW, $maxH);
+            $rpr = (isset($r['color']) ? '<w:color w:val="'.$r['color'].'"/>' : '')
+                .(isset($r['lower']) && (float) $r['lower'] > 0 ? '<w:position w:val="-'.(int) round((float) $r['lower'] * 1.5).'"/>' : '');
+
+            // Warna font pada gambar (penanda kunci merah) disimpan pada run, sama seperti Word saat gambar dipilih lalu diberi warna.
+            return $rpr !== '' ? preg_replace('/^<w:r>/', '<w:r><w:rPr>'.$rpr.'</w:rPr>', $drawing, 1) : $drawing;
         }
 
         $props = ($r['bold'] ?? false ? '<w:b/>' : '')
             .($r['italic'] ?? false ? '<w:i/>' : '')
             .($r['underline'] ?? false ? '<w:u w:val="single"/>' : '')
             .(isset($r['color']) ? '<w:color w:val="'.preg_replace('/[^0-9A-Fa-f]/', '', $r['color']).'"/>' : '')
-            .(isset($r['size']) ? '<w:sz w:val="'.((int) $r['size'] * 2).'"/><w:szCs w:val="'.((int) $r['size'] * 2).'"/>' : '');
+            .(isset($r['size']) ? '<w:sz w:val="'.((int) $r['size'] * 2).'"/><w:szCs w:val="'.((int) $r['size'] * 2).'"/>' : '')
+            .($r['sup'] ?? false ? '<w:vertAlign w:val="superscript"/>' : ($r['sub'] ?? false ? '<w:vertAlign w:val="subscript"/>' : ''));
 
         return '<w:r>'.($props === '' ? '' : '<w:rPr>'.$props.'</w:rPr>').'<w:t xml:space="preserve">'.$this->esc($r['text']).'</w:t></w:r>';
     }

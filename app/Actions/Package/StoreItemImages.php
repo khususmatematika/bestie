@@ -18,9 +18,9 @@ use Illuminate\Support\Str;
  */
 final class StoreItemImages
 {
-    private const MAX_PER_ITEM = 8;
+    private const MAX_PER_ITEM = 30;
 
-    private const MAX_TOTAL = 60;
+    private const MAX_TOTAL = 300;
 
     public function __construct(private readonly DocxStructureReader $reader)
     {
@@ -60,6 +60,8 @@ final class StoreItemImages
     {
         $map = [];
         $skipped = 0;
+
+        $skipped += max(0, count($paths) - self::MAX_PER_ITEM);
 
         foreach (array_slice($paths, 0, self::MAX_PER_ITEM) as $index => $zipPath) {
             if ($alreadyStored + count($map) >= self::MAX_TOTAL) {

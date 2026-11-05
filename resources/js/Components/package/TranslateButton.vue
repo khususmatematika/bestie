@@ -20,7 +20,7 @@ const languages = [
 ];
 
 const text = computed(() => {
-    const clean = (t: string): string => t.replace(/⟦[^⟧]*⟧/g, ' ').replace(/<\/?[biu]>/gi, '').replace(/\\\(([\s\S]+?)\\\)/g, '$1').replace(/\s+\n/g, '\n').trim();
+    const clean = (t: string): string => t.replace(/⟦[^⟧]*⟧/g, ' ').replace(/<\/?(?:b|i|u|sub|sup)>/gi, '').replace(/\\\(([\s\S]+?)\\\)/g, '$1').replace(/\s+\n/g, '\n').trim();
     const lines = [clean(props.item.stem)];
 
     for (const [letter, opt] of Object.entries(props.item.options)) {

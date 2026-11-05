@@ -26,7 +26,7 @@ final class NaskahTemplateDocument
             '• Beri JUDUL BAGIAN sebelum soal-soalnya, satu baris sendiri: Pilihan Ganda, Pilihan Ganda Kompleks, Benar/Salah, Menjodohkan, Isian, atau Uraian. Judul ini menentukan bentuk soal.',
             '• NOMOR SOAL memakai daftar bernomor otomatis Word (tombol Numbering). Nomor berlanjut di seluruh dokumen dan harus sama dengan kolom "No. Soal" pada kisi-kisi.',
             '• PILIHAN JAWABAN memakai daftar huruf otomatis (A, B, C, D, E). Mulai ulang dari A pada tiap soal (klik kanan → Restart at A).',
-            '• KUNCI JAWABAN = beri WARNA FONT MERAH pada pilihan yang benar. Benar/Salah: warnai huruf B atau S pada "(B/S)". Menjodohkan: tulis jawaban yang benar di dalam tanda kurung merah di akhir tiap pernyataan, lalu tambahkan satu baris "Pengecoh: ..." (pisahkan dengan titik koma) agar pilihan jawaban lebih banyak daripada pernyataan, mis. 5 pernyataan = minimal 6 pilihan.',
+            '• KUNCI JAWABAN = beri WARNA FONT MERAH pada pilihan yang benar. Benar/Salah: tulis pernyataan berhuruf (A, B, …) di bawah soal, akhiri tiap pernyataan dengan "(B/S)", lalu warnai huruf yang benar (B atau S). Menjodohkan: tulis jawaban yang benar di dalam tanda kurung merah di akhir tiap pernyataan, lalu tambahkan satu baris "Pengecoh: ..." (pisahkan dengan titik koma) agar pilihan jawaban lebih banyak daripada pernyataan, mis. 5 pernyataan = minimal 6 pilihan.',
             '• Isian dan Uraian: kunci/pedoman penskoran tidak dibaca dari naskah; isi di BESTIE pada halaman soal.',
             '• RUMUS: Insert → Equation. GAMBAR: tempel langsung di bawah teks soal. Teks tanpa nomor di antara soal dan pilihan dianggap bagian soal (stimulus).',
             '• Warna oranye dianggap penanda revisi dan diabaikan. Satu berkas maksimal 5 pilihan (A–E) per soal.',
@@ -58,8 +58,17 @@ final class NaskahTemplateDocument
         $d->paragraph('', ['after' => 0]);
         $d->paragraph('Benar/ Salah', ['bold' => true, 'after' => 80]);
 
-        $d->runs([['text' => 'Bilangan prima terkecil adalah 2. ('], ['text' => 'B', 'color' => self::RED], ['text' => '/S)']], ['numId' => $q]);
-        $d->runs([['text' => 'Semua bilangan genap habis dibagi 4. (B/'], ['text' => 'S', 'color' => self::RED], ['text' => ')']], ['numId' => $q]);
+        // Satu soal berisi beberapa pernyataan berhuruf; tiap pernyataan diakhiri "(B/S)" dan huruf yang benar diberi warna merah.
+        $d->runs([['text' => 'Tentukan kebenaran pernyataan berikut.']], ['numId' => $q]);
+        $tf = $d->newList('upperLetter');
+        $d->runs([['text' => 'Bilangan prima terkecil adalah 2. ('], ['text' => 'B', 'color' => self::RED], ['text' => '/S)']], ['numId' => $tf, 'after' => 20]);
+        $d->runs([['text' => 'Semua bilangan genap habis dibagi 4. (B/'], ['text' => 'S', 'color' => self::RED], ['text' => ')']], ['numId' => $tf, 'after' => 20]);
+
+        $d->runs([['text' => 'Tentukan kebenaran pernyataan berikut.']], ['numId' => $q]);
+        $tf2 = $d->newList('upperLetter');
+        $d->runs([['text' => 'Rumus kimia air adalah H'], ['text' => '2', 'sub' => true], ['text' => 'O. ('], ['text' => 'B', 'color' => self::RED], ['text' => '/S)']], ['numId' => $tf2, 'after' => 20]);
+        $d->runs([['text' => 'Rumus kimia asam sulfat adalah H'], ['text' => '2', 'sub' => true], ['text' => 'SO'], ['text' => '3', 'sub' => true], ['text' => '. (B/'], ['text' => 'S', 'color' => self::RED], ['text' => ')']], ['numId' => $tf2, 'after' => 20]);
+        $d->runs([['text' => 'Ion natrium dituliskan dengan simbol Na'], ['text' => '+', 'sup' => true], ['text' => '. ('], ['text' => 'B', 'color' => self::RED], ['text' => '/S)']], ['numId' => $tf2, 'after' => 20]);
 
         // ---- Menjodohkan
         $d->paragraph('', ['after' => 0]);

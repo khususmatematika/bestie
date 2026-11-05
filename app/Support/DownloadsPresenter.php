@@ -41,6 +41,7 @@ final class DownloadsPresenter
             'recap_docx_url' => route('downloads.recap', ['package' => $package, 'format' => 'docx']),
             'validated_url' => route('downloads.validated', $package),
             'final_url' => route('downloads.final', $package),
+            'cbt_url' => $finished ? route('downloads.cbt', $package) : null,
             'is_final' => $finished,
             'final' => $export === null ? null : [
                 'status' => $export->status->value,

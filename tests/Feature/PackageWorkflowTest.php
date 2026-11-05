@@ -436,4 +436,28 @@ class PackageWorkflowTest extends TestCase
         $this->actingAs($this->admin)->delete('/admin/packages/'.$fixed->id);
         $this->assertNotNull(QuestionPackage::query()->find($fixed->id));
     }
+
+    public function test_cbt_template_download_requires_fix_and_follows_keywords(): void
+    {
+        $package = $this->package();
+
+        $this->actingAs($this->teacher)->get('/packages/'.$package->id.'/downloads/cbt')->assertForbidden();
+
+        $package->forceFill(['status' => PackageStatus::Fix])->save();
+
+        $response = $this->actingAs($this->teacher)->get('/packages/'.$package->id.'/downloads/cbt')->assertOk();
+        $file = $response->baseResponse->getFile()->getPathname();
+
+        $zip = new \ZipArchive;
+        $zip->open($file);
+        $xml = (string) $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        foreach (['@META-NOMOR: 1', '@META-JENIS: PG', '@KONTEN-SOAL:', '@KONTEN-OPSI:', '@META-KUNCI:'] as $keyword) {
+            $this->assertStringContainsString($keyword, $xml);
+        }
+
+        // Naskah CBT tidak boleh memuat objek Equation Word (rumus dijadikan gambar).
+        $this->assertStringNotContainsString('<m:oMath', $xml);
+    }
 }

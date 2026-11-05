@@ -8,23 +8,23 @@ import MathInline from './MathInline.vue';
  */
 const props = defineProps<{ text: string; images?: Record<string, string>; alt?: string }>();
 
-type Part = { kind: 'text'; value: string; b?: boolean; i?: boolean; u?: boolean } | { kind: 'math'; value: string } | { kind: 'img'; value: string };
+type Part = { kind: 'text'; value: string; b?: boolean; i?: boolean; u?: boolean; sub?: boolean; sup?: boolean } | { kind: 'math'; value: string } | { kind: 'img'; value: string };
 
 const parts = computed<Part[]>(() => {
     const out: Part[] = [];
-    const re = /\\\(([\s\S]+?)\\\)|⟦img:(\d+)⟧|<(\/?)([biu])>/gi;
+    const re = /\\\(([\s\S]+?)\\\)|⟦img:(\d+)⟧|<(\/?)(b|i|u|sub|sup)>/gi;
     let last = 0;
     let m: RegExpExecArray | null;
     const src = props.text ?? '';
-    const fmt = { b: false, i: false, u: false };
+    const fmt = { b: false, i: false, u: false, sub: false, sup: false };
     const pushText = (value: string) => {
-        if (value !== '') out.push({ kind: 'text', value, b: fmt.b, i: fmt.i, u: fmt.u });
+        if (value !== '') out.push({ kind: 'text', value, b: fmt.b, i: fmt.i, u: fmt.u, sub: fmt.sub, sup: fmt.sup });
     };
 
     while ((m = re.exec(src)) !== null) {
         pushText(src.slice(last, m.index));
         if (m[1] !== undefined) out.push({ kind: 'math', value: m[1] });
-        else if (m[4] !== undefined) fmt[m[4].toLowerCase() as 'b' | 'i' | 'u'] = m[3] !== '/';
+        else if (m[4] !== undefined) fmt[m[4].toLowerCase() as 'b' | 'i' | 'u' | 'sub' | 'sup'] = m[3] !== '/';
         else {
             const url = props.images?.[m[2]];
             if (url) out.push({ kind: 'img', value: url });
@@ -43,7 +43,7 @@ const parts = computed<Part[]>(() => {
         <template v-for="(p, i) in parts" :key="i">
             <MathInline v-if="p.kind === 'math'" :latex="p.value" />
             <img v-else-if="p.kind === 'img'" :src="p.value" :alt="alt ?? 'Gambar pada soal'" class="mx-1 my-1 inline-block max-h-72 max-w-full rounded border border-line bg-white align-middle" loading="lazy" />
-            <span v-else :class="[p.b && 'font-bold', p.i && 'italic', p.u && 'underline']">{{ p.value }}</span>
+            <span v-else :class="[p.b && 'font-bold', p.i && 'italic', p.u && 'underline', p.sub && 'align-sub text-[0.75em]', p.sup && 'align-super text-[0.75em]']">{{ p.value }}</span>
         </template>
     </span>
 </template>
