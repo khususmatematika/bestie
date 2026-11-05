@@ -98,7 +98,13 @@ async function remove(s: Subject): Promise<void> {
 <template>
     <Head title="Mapel" />
     <PageHeader title="Mata pelajaran" description="Tentukan kategori (umum/pilihan) dan tingkat kelas tiap mapel. Kode mapel dipakai pada impor akun guru (kolom kode_mapel).">
-        <Link href="/admin/subjects/import" class="btn-secondary"><FileSpreadsheet class="size-4" /> Impor Excel</Link>
+        <Link
+            href="/admin/subjects/import"
+            class="group inline-flex items-center gap-2.5 rounded-xl border border-accent-500/40 bg-accent-50 px-3.5 py-2 text-sm font-bold text-accent-700 transition hover:-translate-y-0.5 hover:border-accent-500 hover:shadow-soft dark:bg-accent-500/10 dark:text-accent-100"
+        >
+            <span class="grid size-7 place-items-center rounded-lg bg-accent-500 text-white"><FileSpreadsheet class="size-4" /></span>
+            Impor dari Excel
+        </Link>
         <button type="button" class="btn-primary" @click="openCreate"><Plus class="size-4" /> Tambah mapel</button>
     </PageHeader>
 

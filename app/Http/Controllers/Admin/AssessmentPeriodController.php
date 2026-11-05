@@ -50,7 +50,7 @@ class AssessmentPeriodController extends Controller
             'semesters' => $semesters,
             'types' => array_map(
                 static fn (PeriodType $t): array => ['value' => $t->value, 'label' => $t->label()],
-                PeriodType::cases(),
+                PeriodType::selectable(),
             ),
         ]);
     }

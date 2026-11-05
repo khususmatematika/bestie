@@ -14,13 +14,11 @@ const props = defineProps<{
     max_mb: number;
 }>();
 
-const form = useForm<{ assignment_id: number | ''; title: string; kisi_kisi: File | null; naskah: File | null }>({
+const form = useForm<{ assignment_id: number | ''; kisi_kisi: File | null; naskah: File | null }>({
     assignment_id: props.assignments.some((a) => a.id === props.preselected) ? (props.preselected as number) : '',
-    title: '',
     kisi_kisi: null,
     naskah: null,
 });
-
 
 function submit(): void {
     form.post('/teacher/packages', { forceFormData: true });
@@ -66,11 +64,6 @@ function submit(): void {
                     <p v-if="form.errors.assignment_id" class="error-text" role="alert">{{ form.errors.assignment_id }}</p>
                 </fieldset>
 
-                <div class="mt-5">
-                    <FormField v-slot="{ id, invalid }" label="Judul paket (opsional)" :error="form.errors.title" hint="Kosongkan untuk judul otomatis: mapel, kelas, dan periode.">
-                        <input :id="id" v-model="form.title" class="input" :class="{ 'input-error': invalid }" maxlength="180" />
-                    </FormField>
-                </div>
             </section>
 
             <section class="card p-6">

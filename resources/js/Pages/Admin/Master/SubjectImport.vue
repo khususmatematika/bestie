@@ -53,7 +53,7 @@ function submit(): void {
         <section class="card p-6 lg:col-span-3">
             <div class="flex items-center justify-between gap-3">
                 <h2 class="text-base font-bold text-ink">1. Unggah berkas</h2>
-                <a href="/admin/subjects/import/template" class="btn-secondary btn-sm"><Download class="size-3.5" /> Unduh template</a>
+                <a href="/admin/subjects/import/template" class="inline-flex items-center gap-2 rounded-xl border border-accent-500/40 bg-accent-50 px-3 py-1.5 text-sm font-bold text-accent-700 transition hover:border-accent-500 hover:shadow-soft dark:bg-accent-500/10 dark:text-accent-100"><Download class="size-4" /> Unduh template</a>
             </div>
 
             <form class="mt-4 space-y-4" @submit.prevent="submit">
@@ -68,10 +68,10 @@ function submit(): void {
                     </span>
                 </label>
 
-                <button type="submit" class="btn-primary" :disabled="!form.file || form.processing">
-                    <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />
-                    <Upload v-else class="size-4" />
-                    Mulai impor
+                <button type="submit" class="btn-primary w-full gap-2.5 py-3 text-base shadow-soft transition enabled:hover:-translate-y-0.5" :disabled="!form.file || form.processing">
+                    <LoaderCircle v-if="form.processing" class="size-5 animate-spin" />
+                    <Upload v-else class="size-5" />
+                    {{ form.processing ? 'Mengimpor…' : form.file ? 'Mulai impor sekarang' : 'Pilih berkas untuk memulai' }}
                 </button>
             </form>
         </section>

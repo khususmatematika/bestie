@@ -58,7 +58,7 @@ const steps = [
         </div>
 
         <SectionCard title="Cara menelaah" subtitle="Empat langkah dari paket masuk sampai Fix">
-            <ol class="grid grid-cols-2 gap-3 @4xl:grid-cols-4 @4xl:gap-4">
+            <ol class="grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-4">
                 <li v-for="(s, i) in steps" :key="s.title" class="relative rounded-xl border border-line bg-surface-2/50 p-4">
                     <span class="absolute right-3 top-2 text-3xl font-extrabold text-ink/5 dark:text-white/10">{{ i + 1 }}</span>
                     <span class="flex size-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300"><component :is="s.icon" class="size-5" /></span>

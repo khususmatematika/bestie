@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { CalendarClock, Lock, LockOpen, LoaderCircle, Pencil, Plus, Trash2 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useConfirm } from '@/Composables/useConfirm';
 import { formatDate } from '@/Composables/useFormat';
 import EmptyState from '@/Components/ui/EmptyState.vue';
@@ -24,7 +24,7 @@ interface Period {
     status_label: string;
 }
 
-defineProps<{
+const props = defineProps<{
     periods: Period[];
     semesters: { id: number; label: string }[];
     types: { value: string; label: string }[];
@@ -36,10 +36,16 @@ const editing = ref<Period | null>(null);
 const form = useForm({
     semester_id: '' as number | '',
     name: '',
-    type: 'sts',
+    type: 'sas',
     upload_deadline: '',
     validation_deadline: '',
     revision_deadline: '',
+});
+
+// Periode lama berjenis STS tetap bisa diubah tanpa kehilangan jenisnya.
+const typeOptions = computed(() => {
+    const t = editing.value;
+    return t && !props.types.some((x) => x.value === t.type) ? [...props.types, { value: t.type, label: t.type_label }] : props.types;
 });
 
 function openCreate(): void {
@@ -96,7 +102,7 @@ async function remove(p: Period): Promise<void> {
 
 <template>
     <Head title="Periode Asesmen" />
-    <PageHeader title="Periode asesmen" description="Sumatif Tengah Semester (STS) dan Sumatif Akhir Semester (SAS) beserta tenggat unggah, validasi, dan revisi.">
+    <PageHeader title="Periode asesmen" description="Sumatif Akhir Semester (SAS), Sumatif Akhir Tahun (SAT), dan Sumatif Akhir Jenjang (SAJ) beserta tenggat unggah, validasi, dan revisi.">
         <button type="button" class="btn-primary" :disabled="!semesters.length" @click="openCreate"><Plus class="size-4" /> Tambah periode</button>
     </PageHeader>
 
@@ -137,7 +143,7 @@ async function remove(p: Period): Promise<void> {
                 </tbody>
             </table>
         </div>
-        <EmptyState v-else title="Belum ada periode asesmen" :description="semesters.length ? 'Tambahkan periode STS atau SAS untuk semester terkait.' : 'Buat semester terlebih dahulu.'">
+        <EmptyState v-else title="Belum ada periode asesmen" :description="semesters.length ? 'Tambahkan periode SAS, SAT, atau SAJ untuk semester terkait.' : 'Buat semester terlebih dahulu.'">
             <template #icon><CalendarClock class="size-7" /></template>
         </EmptyState>
     </section>
@@ -153,12 +159,12 @@ async function remove(p: Period): Promise<void> {
                 </FormField>
                 <FormField v-slot="{ id, invalid }" label="Jenis asesmen" :error="form.errors.type" required>
                     <select :id="id" v-model="form.type" class="input" :class="{ 'input-error': invalid }">
-                        <option v-for="t in types" :key="t.value" :value="t.value">{{ t.label }}</option>
+                        <option v-for="t in typeOptions" :key="t.value" :value="t.value">{{ t.label }}</option>
                     </select>
                 </FormField>
             </div>
             <FormField v-slot="{ id, invalid }" label="Nama periode" :error="form.errors.name" required>
-                <input :id="id" v-model="form.name" class="input" :class="{ 'input-error': invalid }" placeholder="Sumatif Tengah Semester Ganjil" />
+                <input :id="id" v-model="form.name" class="input" :class="{ 'input-error': invalid }" placeholder="Sumatif Akhir Semester Ganjil" />
             </FormField>
             <div class="grid gap-4 sm:grid-cols-3">
                 <FormField v-slot="{ id, invalid }" label="Tenggat unggah" :error="form.errors.upload_deadline">

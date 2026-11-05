@@ -253,12 +253,13 @@ class DashboardController extends Controller
             ->with(['teacher:id,name', 'subject:id,name', 'gradeLevel:id,name'])
             ->where('semester_id', $semester->id)
             ->get()
-            ->reject(static fn (TeachingAssignment $a): bool => $have->has($a->teacher_id.'-'.$a->subject_id.'-'.$a->grade_level_id))
+            ->reject(static fn (TeachingAssignment $a): bool => $a->teacher === null || $have->has($a->teacher_id.'-'.$a->subject_id.'-'.$a->grade_level_id))
+            ->sortBy(static fn (TeachingAssignment $a): string => mb_strtolower($a->teacher->name.' '.$a->subject->name))
             ->values();
 
         return [
             'total' => $missing->count(),
-            'rows' => $missing->take(8)->map(static fn (TeachingAssignment $a): array => [
+            'rows' => $missing->map(static fn (TeachingAssignment $a): array => [
                 'teacher' => $a->teacher->name,
                 'subject' => $a->subject->name,
                 'grade' => $a->gradeLevel->name,

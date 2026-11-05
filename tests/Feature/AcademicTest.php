@@ -110,6 +110,19 @@ class AcademicTest extends TestCase
         $this->assertSame(1, AssessmentPeriod::query()->count());
     }
 
+    public function test_period_types_are_sas_sat_and_saj(): void
+    {
+        $semester = $this->semester($this->year(), 'genap', SemesterStatus::Aktif);
+
+        foreach (['sas' => 'Sumatif Akhir Semester', 'sat' => 'Sumatif Akhir Tahun', 'saj' => 'Sumatif Akhir Jenjang'] as $type => $label) {
+            $this->actingAs($this->admin)->post('/admin/periods', ['semester_id' => $semester->id, 'name' => $label, 'type' => $type])->assertSessionHasNoErrors();
+        }
+
+        $this->assertSame(3, AssessmentPeriod::query()->count());
+        $this->assertSame(['SAS', 'SAT', 'SAJ'], array_map(static fn (PeriodType $t): string => $t->short(), PeriodType::selectable()));
+        $this->actingAs($this->admin)->post('/admin/periods', ['semester_id' => $semester->id, 'name' => 'X', 'type' => 'xyz'])->assertSessionHasErrors('type');
+    }
+
     public function test_deadlines_must_be_in_chronological_order(): void
     {
         $semester = $this->semester($this->year(), 'ganjil', SemesterStatus::Aktif);

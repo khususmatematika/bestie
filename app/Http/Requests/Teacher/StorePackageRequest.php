@@ -23,7 +23,6 @@ class StorePackageRequest extends FormRequest
 
         return [
             'assignment_id' => ['required', 'integer', 'exists:teaching_assignments,id'],
-            'title' => ['nullable', 'string', 'max:180'],
             'kisi_kisi' => ['nullable', 'file', 'max:'.$max, new SafeUpload(['xlsx', 'docx', 'pdf'])],
             'naskah' => ['nullable', 'file', 'max:'.$max, new SafeUpload(['docx', 'pdf'])],
         ];
@@ -36,7 +35,6 @@ class StorePackageRequest extends FormRequest
     {
         return [
             'assignment_id' => 'mapel dan tingkat',
-            'title' => 'judul paket',
             'kisi_kisi' => 'berkas kisi-kisi',
             'naskah' => 'berkas naskah',
         ];

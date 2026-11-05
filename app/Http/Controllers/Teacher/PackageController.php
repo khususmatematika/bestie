@@ -96,7 +96,7 @@ class PackageController extends Controller
             $request->user(),
             $period,
             $assignment,
-            $request->input('title'),
+            null, // judul paket dibuat otomatis: mapel, kelas, dan periode
             $request->file('kisi_kisi'),
             $request->file('naskah'),
         );

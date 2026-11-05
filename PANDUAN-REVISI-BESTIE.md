@@ -340,3 +340,11 @@ Ketiga dashboard memakai kerangka yang sama (komponen baru di `Components/dashbo
 - Validator: antrean, tenggat validasi, dan panduan 4 langkah bergambar.
 - Admin: persiapan awal (dicoret merah bila selesai), semester, tenggat, status paket, kemajuan per mapel, penugasan yang belum membuat paket.
 Tata letak memakai *container query*, sehingga ikut menyesuaikan saat sidebar dibuka/dilipat. Tidak ada perubahan backend.
+
+## Revisi dashboard admin, impor mapel, paket guru, judul otomatis, jenis asesmen
+
+1. **Dashboard admin**: "Belum membuat paket" kini hanya kartu jumlah; klik "Lihat guru" membuka jendela berisi nama guru beserta mapel/kelasnya (dikelompokkan per guru, ada pencarian). Persiapan awal menjadi deretan langkah mendatar (tidak ada ruang kosong), dan kolom kanan memuat ringkasan, semester, dan tenggat.
+2. **Impor mapel**: tombol "Impor dari Excel" dan halaman impor dipercantik (tombol besar dengan status, tombol template beraksen).
+3. **Paket soal saya (guru)**: tampilan kartu, filter status berupa pil, penugasan yang belum punya paket tampil sebagai kartu "Buat paket".
+4. **Judul paket otomatis**: kolom judul dihapus dari "Buat paket soal"; judul dibuat otomatis (mapel, kelas, periode).
+5. **Jenis asesmen** pada periode: Sumatif Akhir Semester (SAS), Sumatif Akhir Tahun (SAT), Sumatif Akhir Jenjang (SAJ). Periode lama berjenis STS tetap terbaca dan dapat disunting, tetapi tidak lagi ditawarkan untuk periode baru. Tidak perlu migrasi basis data.
