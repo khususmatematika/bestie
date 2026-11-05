@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle, Paperclip } from '@lucide/vue';
+import { LoaderCircle } from '@lucide/vue';
+import FilePicker from '@/Components/ui/FilePicker.vue';
 import { computed, nextTick, ref } from 'vue';
 import MathText from '@/Components/package/MathText.vue';
 import FormField from '@/Components/ui/FormField.vue';
@@ -260,9 +261,6 @@ function submit(): void {
     }
 }
 
-function pickFile(event: Event): void {
-    form.attachment = (event.target as HTMLInputElement).files?.[0] ?? null;
-}
 </script>
 
 <template>
@@ -359,10 +357,7 @@ function pickFile(event: Event): void {
 
         <div v-if="mode === 'revise'">
             <label class="label" for="item-attachment">Lampiran (opsional)</label>
-            <label for="item-attachment" class="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line px-4 py-3 text-sm text-ink-soft hover:bg-surface-2">
-                <Paperclip class="size-4" /> {{ form.attachment ? form.attachment.name : 'Pilih berkas (docx, xlsx, pdf, png, jpg)' }}
-            </label>
-            <input id="item-attachment" type="file" class="sr-only" accept=".docx,.xlsx,.pdf,.png,.jpg,.jpeg" @change="pickFile" />
+            <FilePicker id="item-attachment" v-model="form.attachment" accept=".docx,.xlsx,.pdf,.png,.jpg,.jpeg" label="Pilih lampiran" hint="docx, xlsx, pdf, png, jpg" :invalid="!!form.errors.attachment" />
             <p v-if="form.errors.attachment" class="error-text" role="alert">{{ form.errors.attachment }}</p>
         </div>
 

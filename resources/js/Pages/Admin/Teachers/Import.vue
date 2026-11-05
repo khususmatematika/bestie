@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, ChevronDown, Download, FileSpreadsheet, KeyRound, LoaderCircle, Upload } from '@lucide/vue';
+import { ArrowLeft, ChevronDown, Download, KeyRound, LoaderCircle, Upload } from '@lucide/vue';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { formatDateTime } from '@/Composables/useFormat';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import FilePicker from '@/Components/ui/FilePicker.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import StatusBadge from '@/Components/ui/StatusBadge.vue';
 
@@ -33,18 +34,7 @@ interface Batch {
 const props = defineProps<{ batches: Batch[]; hasRunning: boolean }>();
 
 const form = useForm<{ file: File | null; update_existing: boolean; must_change_password: boolean }>({ file: null, update_existing: false, must_change_password: true });
-const fileInput = ref<HTMLInputElement | null>(null);
 const expanded = ref<number | null>(null);
-const dragging = ref(false);
-
-function pick(files: FileList | null): void {
-    form.file = files?.[0] ?? null;
-}
-
-function onDrop(event: DragEvent): void {
-    dragging.value = false;
-    pick(event.dataTransfer?.files ?? null);
-}
 
 function submit(): void {
     form.post('/admin/teachers/import', {
@@ -52,7 +42,6 @@ function submit(): void {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
-            if (fileInput.value) fileInput.value.value = '';
         },
     });
 }
@@ -105,19 +94,7 @@ function sizeLabel(bytes: number | null): string {
             </div>
 
             <form class="mt-4 space-y-4" @submit.prevent="submit">
-                <label
-                    class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition"
-                    :class="dragging ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10' : 'border-line hover:border-primary-300 hover:bg-surface-2'"
-                    @dragover.prevent="dragging = true"
-                    @dragleave="dragging = false"
-                    @drop.prevent="onDrop"
-                >
-                    <span class="flex size-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300"><FileSpreadsheet class="size-6" /></span>
-                    <span v-if="form.file" class="mt-3 text-sm font-bold text-ink">{{ form.file.name }}</span>
-                    <span v-else class="mt-3 text-sm font-semibold text-ink">Klik atau seret berkas ke sini</span>
-                    <span class="mt-1 text-xs text-ink-faint">{{ form.file ? sizeLabel(form.file.size) : '.xlsx atau .csv · maks. 1.000 baris' }}</span>
-                    <input ref="fileInput" type="file" accept=".xlsx,.csv" class="sr-only" @change="pick(($event.target as HTMLInputElement).files)" />
-                </label>
+                <FilePicker v-model="form.file" accept=".xlsx,.csv" label="Pilih berkas Excel / CSV" hint=".xlsx atau .csv · maks. 1.000 baris · atau tarik dan lepas ke sini" :invalid="!!form.errors.file" />
                 <p v-if="form.errors.file" class="error-text" role="alert">{{ form.errors.file }}</p>
 
                 <label class="flex cursor-pointer items-start gap-2.5 text-sm text-ink">

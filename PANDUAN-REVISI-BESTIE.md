@@ -319,3 +319,24 @@ Tombol "Choose File" bawaan browser yang tipis diganti komponen `FilePicker.vue`
 Pada halaman paket guru, kartu "Unggah / ganti berkas" dipindah ke atas daftar nomor soal, sejajar (dua kolom) dengan kartu "Kirim ke validator". Daftar berkas yang sudah diunggah tetap di kolom kanan bawah.
 
 Pembaruan: bagian atas halaman paket guru kini tiga kolom sejajar — **Kisi-kisi**, **Naskah soal**, dan **Kirim ke validator** (layar sempit menumpuk ke bawah).
+
+## Arsip soal, pemilih berkas seragam, persiapan awal, dan simpan kata sandi
+
+1. **Arsip soal** didesain ulang: kartu impor bertahap (Identitas arsip → Berkas naskah), daftar arsip berupa kartu dengan ikon, lencana tahun/kelas/jumlah butir, dan jumlah berkas.
+2. **Semua pemilih berkas** memakai `FilePicker` (kotak tarik-lepas dengan tombol "Pilih berkas"): buat paket, unggah di halaman paket, unggah ulang revisi, lampiran revisi butir, impor arsip, impor guru, impor mapel.
+3. **Persiapan awal (dashboard admin)**: langkah yang sudah terlaksana dicoret dengan garis merah tebal.
+4. **Login**: kolom username/kata sandi tidak lagi dikunci selama animasi; atribut `name`/`autocomplete` (`username`, `current-password`) dipasang dan, pada peramban Chromium, kredensial ditawarkan untuk disimpan setelah login berhasil. Penyimpanan dilakukan oleh peramban/pengelola kata sandi pengguna — bukan oleh aplikasi dan tidak ada kredensial di `.env`.
+
+Pembaruan arsip soal: tata letak memakai *container query* (mengikuti lebar area konten, jadi tetap rapi saat sidebar dibuka/dilipat, bukan hanya lebar layar), dan kartu "Impor naskah lama" bisa dilipat sehingga daftar arsip memakai seluruh lebar.
+
+## Redesain dashboard admin, validator, dan guru
+
+Ketiga dashboard memakai kerangka yang sama (komponen baru di `Components/dashboard`):
+- **DashboardHero**: banner sapaan dengan aksi utama dan satu angka kunci (guru: tenggat terdekat; validator: jumlah yang menunggu; admin: persentase persiapan awal).
+- **SectionCard**: kartu berjudul dengan tautan "lihat semua" dan jumlah.
+- **DeadlineList**: tenggat berupa blok tanggal berwarna (biru = aman, kuning = ≤3 hari, merah = lewat).
+- **StatCard** mendapat keterangan kecil (`hint`); tampil 2 kolom di ponsel.
+- Guru: peringatan merah bila ada nomor perlu diganti, tombol "Buat paket soal", kartu penugasan sebagai pintu masuk membuat paket.
+- Validator: antrean, tenggat validasi, dan panduan 4 langkah bergambar.
+- Admin: persiapan awal (dicoret merah bila selesai), semester, tenggat, status paket, kemajuan per mapel, penugasan yang belum membuat paket.
+Tata letak memakai *container query*, sehingga ikut menyesuaikan saat sidebar dibuka/dilipat. Tidak ada perubahan backend.

@@ -1,28 +1,27 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { Eye, EyeOff, KeyRound, LoaderCircle, LogIn, UserRound } from '@lucide/vue';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import FormField from '@/Components/ui/FormField.vue';
 
 const form = useForm({ identifier: '', password: '', remember: false });
 const showPassword = ref(false);
 const capsLock = ref(false);
 
-// Selama animasi guru berjalan, kolom dikunci & saran kata sandi tersimpan peramban tidak dimunculkan.
-const ready = ref(false);
-let timer: ReturnType<typeof setTimeout> | undefined;
-
-onMounted(() => {
-    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    timer = setTimeout(() => (ready.value = true), still ? 0 : 6700);
-});
-
-onBeforeUnmount(() => {
-    if (timer !== undefined) clearTimeout(timer);
-});
-
 function submit(): void {
-    form.post('/login', { onFinish: () => form.reset('password') });
+    const id = form.identifier;
+    const password = form.password;
+
+    form.post('/login', {
+        onSuccess: () => {
+            // Bantu peramban (Chrome/Edge) menawarkan penyimpanan kredensial walau login lewat XHR.
+            const w = window as unknown as { PasswordCredential?: new (data: { id: string; password: string; name?: string }) => Credential };
+            if (w.PasswordCredential && navigator.credentials?.store) {
+                void navigator.credentials.store(new w.PasswordCredential({ id, password, name: id })).catch(() => undefined);
+            }
+        },
+        onFinish: () => form.reset('password'),
+    });
 }
 
 function checkCaps(event: KeyboardEvent): void {
@@ -39,7 +38,7 @@ function checkCaps(event: KeyboardEvent): void {
             <p class="mt-1.5 text-sm text-ink-soft">Masuk dengan <strong class="text-ink">email atau NIP</strong></p>
         </div>
 
-        <form class="space-y-5" novalidate @submit.prevent="submit">
+        <form class="space-y-5" method="post" action="/login" novalidate @submit.prevent="submit">
             <FormField v-slot="{ id, invalid, describedBy }" label="Email atau NIP" :error="form.errors.identifier">
                 <div class="relative">
                     <UserRound class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
@@ -50,8 +49,9 @@ function checkCaps(event: KeyboardEvent): void {
                         class="input pl-10"
                         :class="{ 'input-error': invalid }"
                         :aria-describedby="describedBy"
-                        :autocomplete="ready ? 'username' : 'off'"
-                        :readonly="!ready"
+                        name="username"
+                        autocomplete="username"
+                        inputmode="email"
                         autocapitalize="none"
                         spellcheck="false"
                         required
@@ -70,8 +70,8 @@ function checkCaps(event: KeyboardEvent): void {
                         class="input pl-10 pr-11"
                         :class="{ 'input-error': invalid }"
                         :aria-describedby="describedBy"
-                        :autocomplete="ready ? 'current-password' : 'off'"
-                        :readonly="!ready"
+                        name="password"
+                        autocomplete="current-password"
                         required
                         @keydown="checkCaps"
                         @keyup="checkCaps"

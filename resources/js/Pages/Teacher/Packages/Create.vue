@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Download, FileSpreadsheet, FileText, LoaderCircle, Upload } from '@lucide/vue';
-import { ref } from 'vue';
+import { ArrowLeft, Download, LoaderCircle, Upload } from '@lucide/vue';
 import { formatDate } from '@/Composables/useFormat';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import FilePicker from '@/Components/ui/FilePicker.vue';
 import FormField from '@/Components/ui/FormField.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 
@@ -21,8 +21,6 @@ const form = useForm<{ assignment_id: number | ''; title: string; kisi_kisi: Fil
     naskah: null,
 });
 
-const kisiInput = ref<HTMLInputElement | null>(null);
-const naskahInput = ref<HTMLInputElement | null>(null);
 
 function submit(): void {
     form.post('/teacher/packages', { forceFormData: true });
@@ -82,20 +80,12 @@ function submit(): void {
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
                         <p class="label">Kisi-kisi <span class="font-normal text-ink-faint">(.docx atau .xlsx)</span></p>
-                        <label class="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-line px-4 py-6 text-center hover:bg-surface-2">
-                            <FileSpreadsheet class="size-6 text-primary-600" />
-                            <span class="mt-2 text-sm font-semibold text-ink">{{ form.kisi_kisi?.name ?? 'Pilih berkas kisi-kisi' }}</span>
-                            <input ref="kisiInput" type="file" class="sr-only" accept=".xlsx,.docx,.pdf" @change="form.kisi_kisi = ($event.target as HTMLInputElement).files?.[0] ?? null" />
-                        </label>
+                        <FilePicker v-model="form.kisi_kisi" accept=".xlsx,.docx,.pdf" label="Pilih berkas kisi-kisi" :invalid="!!form.errors.kisi_kisi" />
                         <p v-if="form.errors.kisi_kisi" class="error-text" role="alert">{{ form.errors.kisi_kisi }}</p>
                     </div>
                     <div>
                         <p class="label">Naskah soal <span class="font-normal text-ink-faint">(.docx atau .pdf)</span></p>
-                        <label class="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-line px-4 py-6 text-center hover:bg-surface-2">
-                            <FileText class="size-6 text-primary-600" />
-                            <span class="mt-2 text-sm font-semibold text-ink">{{ form.naskah?.name ?? 'Pilih berkas naskah' }}</span>
-                            <input ref="naskahInput" type="file" class="sr-only" accept=".docx,.pdf" @change="form.naskah = ($event.target as HTMLInputElement).files?.[0] ?? null" />
-                        </label>
+                        <FilePicker v-model="form.naskah" accept=".docx,.pdf" label="Pilih berkas naskah" :invalid="!!form.errors.naskah" />
                         <p v-if="form.errors.naskah" class="error-text" role="alert">{{ form.errors.naskah }}</p>
                     </div>
                 </div>

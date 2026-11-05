@@ -7,6 +7,8 @@ defineProps<{
     tone?: 'primary' | 'accent' | 'warning' | 'success';
     /** Bila diisi, seluruh kartu menjadi tautan. */
     href?: string;
+    /** Keterangan kecil di bawah label. */
+    hint?: string;
 }>();
 
 const tones = {
@@ -30,6 +32,7 @@ const tones = {
         <div class="min-w-0">
             <p class="text-2xl font-extrabold tabular-nums text-ink">{{ value }}</p>
             <p class="truncate text-sm text-ink-soft">{{ label }}</p>
+            <p v-if="hint" class="mt-0.5 truncate text-xs text-ink-faint">{{ hint }}</p>
         </div>
     </component>
 </template>
