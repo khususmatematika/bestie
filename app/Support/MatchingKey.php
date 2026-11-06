@@ -66,10 +66,44 @@ final class MatchingKey
     }
 
     /**
+     * Pisah dengan ";" tanpa memotong di dalam equation \( ... \) (LaTeX boleh memuat ";" dan tanda kurung).
+     *
      * @return list<string>
      */
-    private static function split(string $text): array
+    public static function split(string $text): array
     {
-        return array_values(array_filter(array_map('trim', explode(';', $text)), static fn (string $p): bool => $p !== ''));
+        [$masked, $map] = self::mask($text);
+
+        return array_values(array_filter(
+            array_map(static fn (string $p): string => self::unmask(trim($p), $map), explode(';', $masked)),
+            static fn (string $p): bool => $p !== '',
+        ));
+    }
+
+    /**
+     * Ganti tiap equation \( ... \) dengan penanda agar regex/pemisah tidak salah membaca tanda kurung atau ";" di dalamnya.
+     *
+     * @return array{0: string, 1: array<string, string>}
+     */
+    public static function mask(string $text): array
+    {
+        $map = [];
+        $i = 0;
+        $masked = preg_replace_callback('/\\\\\(.*?\\\\\)|\\\\\[.*?\\\\\]/us', static function (array $m) use (&$map, &$i): string {
+            $token = "\u{E000}".$i++."\u{E001}";
+            $map[$token] = $m[0];
+
+            return $token;
+        }, $text) ?? $text;
+
+        return [$masked, $map];
+    }
+
+    /**
+     * @param  array<string, string>  $map
+     */
+    public static function unmask(string $text, array $map): string
+    {
+        return $map === [] ? $text : strtr($text, $map);
     }
 }

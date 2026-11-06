@@ -127,7 +127,7 @@ final class ExamDocxParser
             }
 
             // Gambar pengecoh pada paragraf berikutnya (baris "Pengecoh:" kosong atau gambar diletakkan di bawahnya).
-            if ($current['type'] === QuestionType::Menjodohkan && ($current['in_distractors'] ?? false) && $list === null && $bare === '' && $block['images'] !== []) {
+            if ($current['type'] === QuestionType::Menjodohkan && ($current['in_distractors'] ?? false) && $list === null && ($bare === '' && $block['images'] !== [] || $this->onlyMathOrImages($text))) {
                 $current['distractors'] = [...$current['distractors'], ...$this->distractorList($text)];
                 $current['images'] = [...$current['images'], ...$block['images']];
 
@@ -390,9 +390,12 @@ final class ExamDocxParser
                 $pairs = [];
 
                 foreach ($options as $letter => $text) {
-                    if (preg_match('/^(.*?)\s*\(([^()]+)\)\s*((?:<\/(?:b|i|u|sub|sup)>)*)\s*$/us', $text, $m) === 1) {
-                        $options[$letter] = trim($m[1]).$m[3];
-                        $pairs[$letter] = trim($m[2]);
+                    // Equation disembunyikan dulu: nilai "(...)" boleh berupa equation yang memuat tanda kurung.
+                    [$masked, $map] = MatchingKey::mask($text);
+
+                    if (preg_match('/^(.*?)\s*\(([^()]+)\)\s*((?:<\/(?:b|i|u|sub|sup)>)*)\s*$/us', $masked, $m) === 1) {
+                        $options[$letter] = MatchingKey::unmask(trim($m[1]).$m[3], $map);
+                        $pairs[$letter] = MatchingKey::unmask(trim($m[2]), $map);
                     }
                 }
 
@@ -565,7 +568,7 @@ final class ExamDocxParser
     {
         $out = [];
 
-        foreach (explode(';', $tail) as $part) {
+        foreach (MatchingKey::split($tail) as $part) {
             $part = trim($part);
 
             if ($part === '') {
@@ -584,6 +587,18 @@ final class ExamDocxParser
         }
 
         return $out;
+    }
+
+    /** Paragraf yang isinya hanya equation / gambar / pemisah ";" (baris pengecoh lanjutan). */
+    private function onlyMathOrImages(string $text): bool
+    {
+        if (! str_contains($text, '\\(') && ! str_contains($text, '\\[')) {
+            return false;
+        }
+
+        [$masked] = MatchingKey::mask($text);
+
+        return trim((string) preg_replace('/[\x{E000}\x{E001}0-9]+|⟦IMG:[^⟧]*⟧|<\/?[a-z]+>|[;\s]+/iu', '', $masked)) === '';
     }
 
     private function balanceTags(string $text): string

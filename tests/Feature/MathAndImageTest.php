@@ -169,6 +169,27 @@ class MathAndImageTest extends TestCase
         $this->assertContains('m/4.png', $result['items'][1]['images']);
     }
 
+    public function test_menjodohkan_with_equations_in_pairs_and_distractors(): void
+    {
+        $block = static fn (string $t, ?array $list = null): array => ['text' => $t, 'rich' => $t, 'bold' => false, 'list' => $list, 'runs' => [], 'images' => []];
+        $dec = ['num_id' => 1, 'level' => 0, 'fmt' => 'decimal'];
+        $up = ['num_id' => 2, 'level' => 0, 'fmt' => 'upperLetter'];
+
+        $result = (new \App\Services\Documents\ExamDocxParser)->parse([
+            $block('B. Menjodohkan'),
+            $block('Jodohkan turunan berikut!', $dec),
+            $block('\\(f(x)=x^2\\) (\\(2x\\))', $up),
+            $block('\\(g(x)=\\frac{1}{x}\\) (\\(-\\frac{1}{x^{2}}\\))', $up),
+            $block('Pengecoh:'),
+            $block('\\(3x\\); \\(a;b\\)'),
+        ]);
+
+        $item = $result['items'][1];
+        $this->assertSame('\\(f(x)=x^2\\)', $item['options']['A']);
+        $this->assertSame("A=\\(2x\\); B=\\(-\\frac{1}{x^{2}}\\)\nPengecoh: \\(3x\\); \\(a;b\\)", $item['answer_key']);
+        $this->assertSame(['\\(3x\\)', '\\(a;b\\)'], \App\Support\MatchingKey::parse($item['answer_key'])['distractors']);
+    }
+
     public function test_true_false_key_survives_split_runs_and_nested_stem_lists(): void
     {
         $block = static fn (string $t, ?array $list, array $runs): array => ['text' => $t, 'rich' => $t, 'bold' => false, 'list' => $list, 'runs' => $runs, 'images' => []];

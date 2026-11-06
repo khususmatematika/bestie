@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { splitKey } from '@/Composables/matchingKey';
 import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from '@lucide/vue';
 import FilePicker from '@/Components/ui/FilePicker.vue';
@@ -227,10 +228,10 @@ const matching = computed(() => {
         const line = raw.trim();
         const d = /^(?:pilihan\s+)?pengecoh\s*[:：]\s*(.*)$/i.exec(line);
         if (d) {
-            distractors.push(...d[1].split(';').map((x) => x.trim()).filter(Boolean));
+            distractors.push(...splitKey(d[1]));
             continue;
         }
-        for (const part of line.split(';')) {
+        for (const part of splitKey(line)) {
             const m = /^([A-Ea-e])\s*[=:]\s*(.+)$/s.exec(part.trim());
             if (m) {
                 pairs.add(m[1].toUpperCase());
