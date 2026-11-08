@@ -49,7 +49,7 @@ const keyText = computed(() => {
 <template>
     <div class="space-y-4">
         <!-- Rumus dirender KaTeX dan gambar inline dari penanda; sisa teks polos (tanpa v-html) -->
-        <p class="font-serif text-[1.0625rem] leading-relaxed text-ink">
+        <p class="min-w-0 overflow-x-auto font-serif text-[1.0625rem] leading-relaxed text-ink">
             <MathText v-if="item.stem" :text="item.stem" :images="item.image_map" :alt="`Gambar soal nomor ${item.number}`" />
             <template v-else>Teks soal belum diisi.</template>
         </p>
@@ -65,11 +65,11 @@ const keyText = computed(() => {
             <li
                 v-for="[letter, text] in options"
                 :key="letter"
-                class="flex gap-3 rounded-xl border px-3.5 py-2.5 font-serif text-[1rem] leading-relaxed"
+                class="flex min-w-0 gap-3 rounded-xl border px-3.5 py-2.5 font-serif text-[1rem] leading-relaxed"
                 :class="item.answer_key.split(',').includes(letter) ? 'border-success-500/60 bg-success-50 dark:bg-success-500/10' : 'border-line'"
             >
                 <span class="font-sans text-sm font-bold text-primary-700 dark:text-primary-300">{{ letter }}.</span>
-                <span class="text-ink"><MathText :text="String(text)" :images="item.image_map" :alt="`Gambar pilihan ${letter}`" /></span>
+                <span class="min-w-0 flex-1 overflow-x-auto overflow-y-hidden text-ink"><MathText :text="String(text)" :images="item.image_map" :alt="`Gambar pilihan ${letter}`" /></span>
                 <span v-if="tfKey[letter]" class="ml-auto h-fit shrink-0 rounded-md px-2 py-0.5 font-sans text-xs font-bold" :class="tfKey[letter] === 'B' ? 'bg-success-50 text-success-700 dark:bg-success-500/15' : 'bg-danger-50 text-danger-700 dark:bg-danger-500/15'">{{ tfKey[letter] === 'B' ? 'Benar' : 'Salah' }}</span>
             </li>
         </ol>
@@ -81,7 +81,7 @@ const keyText = computed(() => {
                 <li
                     v-for="c in matching.choices"
                     :key="c"
-                    class="rounded-lg border px-2.5 py-1 font-serif text-sm"
+                    class="max-w-full overflow-x-auto rounded-lg border px-2.5 py-1 font-serif text-sm"
                     :class="matching.distractors.includes(c) ? 'border-dashed border-warning-500/60 bg-warning-50 text-ink dark:bg-warning-500/10' : 'border-success-500/60 bg-success-50 text-ink dark:bg-success-500/10'"
                 >
                     <MathText :text="c" :images="item.image_map" alt="Gambar pilihan jawaban" /><span v-if="matching.distractors.includes(c)" class="ml-1 font-sans text-[10px] font-bold uppercase text-warning-700 dark:text-warning-500">pengecoh</span>
