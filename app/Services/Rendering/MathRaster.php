@@ -50,17 +50,104 @@ final class MathRaster
 
     private float $size = 45.0;
 
+    /** Unsur tingkat teratas rumus (untuk melipat rumus panjang); diisi hanya bila equation() diberi lebar maksimum. */
+    private ?array $capture = null;
+
     /**
      * Rumus tunggal menjadi PNG. Mengembalikan lebar/tinggi dalam piksel layar (tanpa faktor skala)
      * dan kedalaman di bawah garis dasar, agar bisa disejajarkan dengan teks.
      *
+     * Bila $maxWidth (px layar) diberikan, rumus yang lebih lebar dilipat ke baris berikutnya pada operator/koma
+     * tingkat teratas; bagian yang tetap terlalu lebar diperkecil proporsional (piksel tetap tajam).
+     *
      * @return array{png: string, w: int, h: int, descent: int}
      */
-    public function equation(string $latex): array
+    public function equation(string $latex, ?int $maxWidth = null): array
     {
+        $this->capture = $maxWidth !== null ? [] : null;
         $box = $this->math($latex, self::BASE * self::SCALE);
+        $items = $this->capture;
+        $this->capture = null;
 
-        return $this->png($box, 3);
+        if ($maxWidth !== null && $items !== null && $items !== [] && $box['w'] > ($maxWidth - 6) * self::SCALE) {
+            $box = $this->foldRows($items, ($maxWidth - 6) * self::SCALE) ?? $box;
+        }
+
+        return $this->png($box, 3, $maxWidth);
+    }
+
+    /**
+     * Lipat unsur tingkat teratas menjadi beberapa baris; titik patah = sebelum operator/relasi dan sesudah koma.
+     *
+     * @param  list<array{box: array<string, mixed>, tok: string}>  $items
+     * @return array{w: float, a: float, d: float, ops: list<array<string, mixed>>}|null
+     */
+    private function foldRows(array $items, float $max): ?array
+    {
+        $chunks = [];
+        $prev = '';
+
+        foreach ($items as $i => $it) {
+            $isBreak = $i > 0 && ($this->isSpacedOperator($it['tok']) || in_array($prev, [',', ';'], true));
+
+            if ($chunks === [] || $isBreak) {
+                $chunks[] = [];
+            }
+
+            $chunks[array_key_last($chunks)][] = $it['box'];
+            $prev = $it['tok'];
+        }
+
+        if (count($chunks) < 2) {
+            return null;
+        }
+
+        $rows = [[]];
+        $used = 0.0;
+
+        foreach ($chunks as $chunk) {
+            $w = array_sum(array_column($chunk, 'w'));
+
+            if ($rows[array_key_last($rows)] !== [] && $used + $w > $max) {
+                $rows[] = [];
+                $used = 0.0;
+            }
+
+            foreach ($chunk as $b) {
+                $rows[array_key_last($rows)][] = $b;
+            }
+
+            $used += $w;
+        }
+
+        if (count($rows) < 2) {
+            return null;
+        }
+
+        $built = array_map(fn (array $r): array => $this->row($r), $rows);
+        $gap = $this->size * 0.25;
+        $ops = [];
+        $width = 0.0;
+        $y = 0.0;
+
+        foreach ($built as $i => $b) {
+            $y = $i === 0 ? 0.0 : $y + $built[$i - 1]['d'] + $gap + $b['a'];
+            $ops = [...$ops, ...$this->placed($b, 0.0, $y)];
+            $width = max($width, $b['w']);
+        }
+
+        $last = $built[array_key_last($built)];
+
+        return ['w' => $width, 'a' => $built[0]['a'], 'd' => $y + $last['d'], 'ops' => $ops];
+    }
+
+    private function isSpacedOperator(string $tok): bool
+    {
+        if (str_starts_with($tok, '\\')) {
+            $tok = self::SYMBOLS[substr($tok, 1)] ?? $tok;
+        }
+
+        return in_array($tok, self::SPACED, true);
     }
 
     /**
@@ -90,7 +177,7 @@ final class MathRaster
      * @param  list<list<array{text: string, span?: int, bold?: bool}>>  $rows
      * @return array{png: string, w: int, h: int, descent: int}
      */
-    public function table(array $rows): array
+    public function table(array $rows, ?int $maxWidth = null): array
     {
         $size = (float) (self::BASE * self::SCALE);
         $padX = $size * 0.55;
@@ -187,7 +274,7 @@ final class MathRaster
             $y += $h;
         }
 
-        return $this->png(['w' => $total, 'a' => 0.0, 'd' => $y, 'ops' => $ops], 3);
+        return $this->png(['w' => $total, 'a' => 0.0, 'd' => $y, 'ops' => $ops], 3, $maxWidth);
     }
 
     /**
@@ -226,7 +313,7 @@ final class MathRaster
      * @param  array{w: float, a: float, d: float, ops: list<array<string, mixed>>}  $box
      * @return array{png: string, w: int, h: int, descent: int}
      */
-    public function png(array $box, int $pad = 2): array
+    public function png(array $box, int $pad = 2, ?int $maxWidth = null): array
     {
         $pad *= self::SCALE;
         $w = max(1, (int) ceil($box['w']) + 2 * $pad);
@@ -237,11 +324,14 @@ final class MathRaster
         imagepng($img);
         $bytes = (string) ob_get_clean();
 
+        $dw = $w / self::SCALE;
+        $ratio = $maxWidth !== null && $dw > $maxWidth ? $maxWidth / $dw : 1.0;
+
         return [
             'png' => $bytes,
-            'w' => (int) round($w / self::SCALE),
-            'h' => (int) round($h / self::SCALE),
-            'descent' => (int) round(($box['d'] + $pad) / self::SCALE),
+            'w' => max(1, (int) round($dw * $ratio)),
+            'h' => max(1, (int) round($h / self::SCALE * $ratio)),
+            'descent' => (int) round(($box['d'] + $pad) / self::SCALE * $ratio),
         ];
     }
 
@@ -440,6 +530,7 @@ final class MathRaster
     private function sequence(?string $stop): array
     {
         $boxes = [];
+        $toks = [];
 
         while (($tok = $this->peek()) !== null) {
             if ($stop !== null && ($tok === $stop || ($stop === 'ROW' && in_array($tok, ['&', '\\\\', '\\end'], true)))) {
@@ -452,6 +543,11 @@ final class MathRaster
 
             $base = in_array($tok, ['^', '_'], true) ? $this->empty(0.0) : $this->atom();
             $boxes[] = $this->scripted($base);
+            $toks[] = $tok;
+        }
+
+        if ($stop === null && $this->capture !== null) {
+            $this->capture = array_map(static fn (array $b, string $t): array => ['box' => $b, 'tok' => $t], $boxes, $toks);
         }
 
         return $this->row($boxes);

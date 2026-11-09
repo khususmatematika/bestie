@@ -348,3 +348,11 @@ Tata letak memakai *container query*, sehingga ikut menyesuaikan saat sidebar di
 3. **Paket soal saya (guru)**: tampilan kartu, filter status berupa pil, penugasan yang belum punya paket tampil sebagai kartu "Buat paket".
 4. **Judul paket otomatis**: kolom judul dihapus dari "Buat paket soal"; judul dibuat otomatis (mapel, kelas, periode).
 5. **Jenis asesmen** pada periode: Sumatif Akhir Semester (SAS), Sumatif Akhir Tahun (SAT), Sumatif Akhir Jenjang (SAJ). Periode lama berjenis STS tetap terbaca dan dapat disunting, tetapi tidak lagi ditawarkan untuk periode baru. Tidak perlu migrasi basis data.
+
+## Naskah Mandarin berpinyin (ruby) dan CBT
+
+1. Pinyin di atas hanzi (Phonetic Guide Word) kini terbaca sebagai penanda `⟦rb:hanzi|pinyin⟧`; tampil di BESTIE dengan pinyin di atas hanzi dan tetap berpinyin pada naskah final Word.
+2. Ekspor CBT menggambar teks berpinyin menjadi gambar PNG (font Noto Sans SC di `resources/fonts`, subset GB2312, lisensi OFL). Satu baris = satu gambar, dilipat pada lebar 360 px agar terbaca di ponsel. Bila font/GD tidak tersedia, pinyin ditulis sebagai teks berkurung.
+3. Server membutuhkan ekstensi PHP GD dengan FreeType (sudah dipakai untuk rumus).
+
+Lebar gambar pada naskah CBT: semua gambar hasil konversi (equation dan teks Mandarin berpinyin) dibatasi maksimum 360 px layar (`CbtDocument::IMAGE_MAX_WIDTH`). Equation panjang dilipat ke beberapa baris pada operator/koma tingkat teratas; bagian yang masih terlalu lebar diperkecil proporsional (piksel tetap tajam). Gambar unggahan dibatasi 7–9 cm.

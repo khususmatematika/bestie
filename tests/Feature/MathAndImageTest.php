@@ -190,6 +190,46 @@ class MathAndImageTest extends TestCase
         $this->assertSame(['\\(3x\\)', '\\(a;b\\)'], \App\Support\MatchingKey::parse($item['answer_key'])['distractors']);
     }
 
+    public function test_ruby_pinyin_is_kept_and_roundtrips_through_word(): void
+    {
+        $path = sys_get_temp_dir().'/bestie-ruby-'.uniqid().'.docx';
+        $doc = new \App\Services\Documents\DocxBuilder('Times New Roman', 12, 1.5, null, 'uji', true);
+        $doc->runs($doc->richRuns('⟦rb:老|lǎo⟧⟦rb:师|shī⟧：好！', [], null), ['after' => 20]);
+        $doc->save($path);
+
+        $blocks = (new \App\Services\Documents\DocxStructureReader)->read($path);
+        $this->assertStringContainsString('⟦rb:老|lǎo⟧⟦rb:师|shī⟧：好！', $blocks[0]['text']);
+        $this->assertSame('老师 好', \App\Services\Similarity\ItemSimilarity::normalize('⟦rb:老|lǎo⟧⟦rb:师|shī⟧ 好'));
+
+        @unlink($path);
+    }
+
+    public function test_cjk_raster_draws_pinyin_text_as_wrapped_png(): void
+    {
+        $this->assertTrue(\App\Services\Rendering\CjkRaster::available());
+
+        $text = str_repeat('⟦rb:你好|nǐhǎo⟧ ', 12).'<b>⟦rb:中国|zhōngguó⟧</b>。';
+        $png = (new \App\Services\Rendering\CjkRaster)->line($text);
+
+        $this->assertStringStartsWith("\x89PNG", $png['png']);
+        $this->assertLessThanOrEqual(420, $png['w']);   // dilipat agar muat di ponsel
+        $this->assertGreaterThan(70, $png['h']);        // lebih dari satu baris
+    }
+
+    public function test_cbt_equation_images_fit_phone_width(): void
+    {
+        $raster = new \App\Services\Rendering\MathRaster;
+        $long = 'T\\left( t \\right)=20+80x+3t^{2}-15t+120+\\frac{3x+4}{x-1}+\\sqrt{x^{2}+9}-7x+11+4y-3z+100';
+
+        $free = $raster->equation($long);
+        $cbt = $raster->equation($long, 360);
+
+        $this->assertGreaterThan(360, $free['w']);
+        $this->assertLessThanOrEqual(360, $cbt['w']);
+        $this->assertGreaterThan($free['h'], $cbt['h']); // dilipat menjadi beberapa baris
+        $this->assertLessThanOrEqual(360, $raster->equation('\\frac{'.str_repeat('1234567890', 12).'}{2}', 360)['w']);
+    }
+
     public function test_true_false_key_survives_split_runs_and_nested_stem_lists(): void
     {
         $block = static fn (string $t, ?array $list, array $runs): array => ['text' => $t, 'rich' => $t, 'bold' => false, 'list' => $list, 'runs' => $runs, 'images' => []];

@@ -438,6 +438,44 @@ final class DocxStructureReader
     }
 
     /**
+     * Pinyin/furigana (w:ruby): huruf dasar + bacaannya ditulis sebagai penanda ⟦rb:dasar|bacaan⟧ agar tidak hilang.
+     */
+    private function ruby(DOMElement $ruby): string
+    {
+        $base = '';
+        $reading = '';
+
+        foreach ($ruby->childNodes as $child) {
+            if (! $child instanceof DOMElement || $child->namespaceURI !== self::NS_W) {
+                continue;
+            }
+
+            if ($child->localName === 'rubyBase') {
+                $base = $this->plainText($child);
+            } elseif ($child->localName === 'rt') {
+                $reading = $this->plainText($child);
+            }
+        }
+
+        $clean = static fn (string $t): string => trim(str_replace(['|', '⟦', '⟧'], '', $t));
+        $base = $clean($base);
+        $reading = $clean($reading);
+
+        return $reading === '' ? $base : '⟦rb:'.$base.'|'.$reading.'⟧';
+    }
+
+    private function plainText(DOMElement $node): string
+    {
+        $out = '';
+
+        foreach ($node->getElementsByTagNameNS(self::NS_W, 't') as $t) {
+            $out .= $t->textContent;
+        }
+
+        return $out;
+    }
+
+    /**
      * @param  list<array{t: string, red: bool}>  $runs
      * @param  list<string>  $images
      */
@@ -454,6 +492,7 @@ final class DocxStructureReader
                 't' => $text .= $part->textContent,
                 'tab' => $text .= "\t",
                 'br', 'cr' => $text .= "\n",
+                'ruby' => $text .= $this->ruby($part),
                 default => null,
             };
         }

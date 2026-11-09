@@ -323,7 +323,7 @@ final class DocxBuilder
         $last = 0;
 
         // Penanda format <b> <i> <u> (dan penutupnya) memengaruhi run sesudahnya; rumus & gambar tetap dikenali.
-        preg_match_all('/\\\\\((.+?)\\\\\)|⟦img:(\d+)⟧|<(\/?)(b|i|u|sub|sup)>/ius', $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        preg_match_all('/\\\\\((.+?)\\\\\)|⟦img:(\d+)⟧|<(\/?)(b|i|u|sub|sup)>|⟦rb:([^|⟧]*)\|([^⟧]*)⟧/ius', $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 
         $style = static function (array $base, array $fmt): array {
             return array_merge($base, array_filter(['bold' => $fmt['bold'] ?: ($base['bold'] ?? false), 'italic' => $fmt['italic'] ?: ($base['italic'] ?? false), 'underline' => $fmt['underline'], 'sub' => $fmt['sub'], 'sup' => $fmt['sup']], static fn ($v) => $v !== false));
@@ -341,6 +341,8 @@ final class DocxBuilder
                 $fmt[$key] = $m[3][0] !== '/';
             } elseif (($m[1][1] ?? -1) >= 0 && $m[1][0] !== '') {
                 $runs[] = ['math' => $m[1][0]] + $style($base, $fmt);
+            } elseif (isset($m[5]) && $m[5][1] >= 0) {
+                $runs[] = ['ruby' => [$m[5][0], $m[6][0]]] + $style($base, $fmt);
             } elseif (isset($m[2]) && $m[2][1] >= 0 && $images !== null) {
                 $file = $images((int) $m[2][0]);
 
@@ -524,6 +526,10 @@ final class DocxBuilder
             return $rpr !== '' ? preg_replace('/^<w:r>/', '<w:r><w:rPr>'.$rpr.'</w:rPr>', $drawing, 1) : $drawing;
         }
 
+        if (isset($r['ruby'])) {
+            return $this->rubyRun($r);
+        }
+
         $props = ($r['bold'] ?? false ? '<w:b/>' : '')
             .($r['italic'] ?? false ? '<w:i/>' : '')
             .($r['underline'] ?? false ? '<w:u w:val="single"/>' : '')
@@ -532,6 +538,21 @@ final class DocxBuilder
             .($r['sup'] ?? false ? '<w:vertAlign w:val="superscript"/>' : ($r['sub'] ?? false ? '<w:vertAlign w:val="subscript"/>' : ''));
 
         return '<w:r>'.($props === '' ? '' : '<w:rPr>'.$props.'</w:rPr>').'<w:t xml:space="preserve">'.$this->esc($r['text']).'</w:t></w:r>';
+    }
+
+    /** Huruf dengan pinyin di atasnya (w:ruby), seperti fitur Phonetic Guide di Word. */
+    private function rubyRun(array $r): string
+    {
+        [$base, $reading] = $r['ruby'];
+        $pt = (float) ($r['size'] ?? $this->sizePt);
+        $props = ($r['bold'] ?? false ? '<w:b/>' : '').($r['italic'] ?? false ? '<w:i/>' : '').(isset($r['color']) ? '<w:color w:val="'.preg_replace('/[^0-9A-Fa-f]/', '', $r['color']).'"/>' : '');
+        $rpr = static fn (string $extra = ''): string => '<w:rPr><w:rFonts w:hint="eastAsia"/>'.$props.$extra.'</w:rPr>';
+        $baseHp = (int) round($pt * 2);
+        $rtHp = max(12, (int) round($pt * 2 * 0.6));
+
+        return '<w:r><w:ruby><w:rubyPr><w:rubyAlign w:val="center"/><w:hps w:val="'.$rtHp.'"/><w:hpsRaise w:val="'.$baseHp.'"/><w:hpsBaseText w:val="'.$baseHp.'"/><w:lid w:val="zh-CN"/></w:rubyPr>'
+            .'<w:rt><w:r>'.$rpr('<w:sz w:val="'.$rtHp.'"/>').'<w:t xml:space="preserve">'.$this->esc((string) $reading).'</w:t></w:r></w:rt>'
+            .'<w:rubyBase><w:r>'.$rpr().'<w:t xml:space="preserve">'.$this->esc((string) $base).'</w:t></w:r></w:rubyBase></w:ruby></w:r>';
     }
 
     private function esc(string $text): string

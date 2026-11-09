@@ -80,6 +80,8 @@ final class ImportArchive
 
     private function clean(string $text): string
     {
+        $text = preg_replace('/⟦rb:([^|⟧]*)\|[^⟧]*⟧/u', '$1', $text) ?? $text;
+
         return trim(preg_replace('/⟦[^⟧]*⟧/u', '', $text) ?? $text);
     }
 }

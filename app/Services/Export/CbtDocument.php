@@ -10,6 +10,7 @@ use App\Models\PackageFile;
 use App\Models\QuestionItem;
 use App\Models\QuestionPackage;
 use App\Services\Documents\DocxBuilder;
+use App\Services\Rendering\CjkRaster;
 use App\Services\Rendering\MathRaster;
 use App\Support\ItemContent;
 use App\Support\MatchingKey;
@@ -25,6 +26,12 @@ final class CbtDocument
 {
     /** @var array<string, array{bytes: string, ext: string, dw: float, dh: float, lower: float}|null> */
     private array $equations = [];
+
+    /** @var array<string, array{png: string, w: int, h: int, descent: int}|null> */
+    private array $cjkImages = [];
+
+    /** Lebar maksimum gambar hasil konversi (px layar) agar pas di layar ponsel. */
+    public const IMAGE_MAX_WIDTH = 360;
 
     private const RULE = '═════════════════════════════════════════════════════';
 
@@ -257,6 +264,10 @@ final class CbtDocument
      */
     private function runs(DocxBuilder $doc, string $text, callable $loader): array
     {
+        if (CjkRaster::hasRuby($text)) {
+            return $this->rubyRuns($doc, $text, $loader);
+        }
+
         $parts = preg_split('/(\\\\\(.+?\\\\\))/us', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY) ?: [$text];
         $runs = [];
         $open = [];
@@ -289,13 +300,73 @@ final class CbtDocument
     }
 
     /**
+     * Teks berpinyin digambar sebagai gambar (CBT tidak membaca ruby Word). Satu baris = satu gambar yang
+     * dilipat pada lebar tetap agar terbaca di ponsel; bila font/GD tidak tersedia, jatuh ke teks berkurung.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rubyRuns(DocxBuilder $doc, string $text, callable $loader): array
+    {
+        $runs = [];
+
+        foreach (preg_split('/(⟦img:\d+⟧)/iu', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY) ?: [$text] as $segment) {
+            if (! CjkRaster::hasRuby($segment)) {
+                array_push($runs, ...$this->runs($doc, $segment, $loader));
+
+                continue;
+            }
+
+            $img = $this->cjk($segment);
+
+            if ($img === null) {
+                array_push($runs, ...$doc->richRuns($this->flattenRuby($segment), [], $loader));
+            } else {
+                $runs[] = ['image' => $img['png'], 'ext' => 'png', 'dw' => (float) $img['w'], 'dh' => (float) $img['h'], 'lower' => (float) $img['descent']];
+            }
+        }
+
+        return $runs;
+    }
+
+    /**
+     * @return array{png: string, w: int, h: int, descent: int}|null
+     */
+    private function cjk(string $text): ?array
+    {
+        if (! array_key_exists($text, $this->cjkImages)) {
+            try {
+                $this->cjkImages[$text] = CjkRaster::available() ? (new CjkRaster)->line($text) : null;
+            } catch (\Throwable) {
+                $this->cjkImages[$text] = null;
+            }
+        }
+
+        return $this->cjkImages[$text];
+    }
+
+    /**
+     * Cadangan bila font tidak tersedia: pinyin ditulis sebagai teks biasa:
+     * hanzi yang berurutan digabung, pinyinnya dalam kurung, mis. "老师 (lǎo shī)".
+     */
+    private function flattenRuby(string $text): string
+    {
+        return preg_replace_callback('/(?:⟦rb:[^|⟧]*\|[^⟧]*⟧)+/u', static function (array $m): string {
+            preg_match_all('/⟦rb:([^|⟧]*)\|([^⟧]*)⟧/u', $m[0], $all, PREG_SET_ORDER);
+            $base = implode('', array_map(static fn (array $x): string => $x[1], $all));
+            $reading = implode(' ', array_map(static fn (array $x): string => $x[2], $all));
+
+            return $base.' ('.$reading.')';
+        }, $text) ?? $text;
+    }
+
+    /**
      * @return array{bytes: string, dw: float, dh: float, lower: float}|null
      */
     private function equation(string $latex): ?array
     {
         if (! array_key_exists($latex, $this->equations)) {
             try {
-                $r = (new MathRaster)->equation($latex);
+                $r = (new MathRaster)->equation($latex, self::IMAGE_MAX_WIDTH);
                 $this->equations[$latex] = ['bytes' => $r['png'], 'ext' => 'png', 'dw' => (float) $r['w'], 'dh' => (float) $r['h'], 'lower' => (float) $r['descent']];
             } catch (\Throwable) {
                 $this->equations[$latex] = null;
