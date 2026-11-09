@@ -356,3 +356,5 @@ Tata letak memakai *container query*, sehingga ikut menyesuaikan saat sidebar di
 3. Server membutuhkan ekstensi PHP GD dengan FreeType (sudah dipakai untuk rumus).
 
 Lebar gambar pada naskah CBT: semua gambar hasil konversi (equation dan teks Mandarin berpinyin) dibatasi maksimum 360 px layar (`CbtDocument::IMAGE_MAX_WIDTH`). Equation panjang dilipat ke beberapa baris pada operator/koma tingkat teratas; bagian yang masih terlalu lebar diperkecil proporsional (piksel tetap tajam). Gambar unggahan dibatasi 7–9 cm.
+
+Kisi-kisi pada naskah final: kolom disamakan dengan template kisi-kisi (No., Capaian Pembelajaran, Materi, Submateri, Indikator Soal, No. Soal, Level Kognitif, Bentuk Soal). Baris dikelompokkan menurut CP > Materi > Submateri, dan sel yang sama digabung menjadi satu baris.

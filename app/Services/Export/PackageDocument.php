@@ -105,16 +105,42 @@ final class PackageDocument
                 ['Penyusun soal', $package->teacher->name.($package->teacher->nip ? ' (NIP. '.$package->teacher->nip.')' : '')],
             ], [22, 78], false);
             $doc->paragraph('', ['after' => 100]);
+            // Dikelompokkan menurut Capaian Pembelajaran > Materi > Submateri (urutan kemunculan pertama), lalu nomor soal,
+            // supaya sel yang sama dapat digabung menjadi satu baris seperti format kisi-kisi.
+            $dash = static fn (mixed $v): string => trim((string) ($v ?? '')) === '' ? '—' : trim((string) $v);
+            $order = static function (string $key) use ($items, $dash): array {
+                $seen = [];
+
+                foreach ($items as $i) {
+                    $seen[$dash($i->blueprint[$key] ?? null)] ??= count($seen);
+                }
+
+                return $seen;
+            };
+            $cpOrder = $order('cp');
+            $materiOrder = $order('materi');
+            $subOrder = $order('submateri');
+            $grouped = $items->sortBy(static fn (QuestionItem $i): array => [
+                $cpOrder[$dash($i->blueprint['cp'] ?? null)],
+                $materiOrder[$dash($i->blueprint['materi'] ?? null)],
+                $subOrder[$dash($i->blueprint['submateri'] ?? null)],
+                $i->number,
+            ])->values();
+
             $doc->table(
-                array_merge([['No', 'Capaian Pembelajaran', 'Materi', 'Indikator soal', 'Level', 'Bentuk']], $items->map(static fn (QuestionItem $i): array => [
+                array_merge([['No.', 'Capaian Pembelajaran', 'Materi', 'Submateri', 'Indikator Soal', 'No. Soal', 'Level Kognitif', 'Bentuk Soal']], $grouped->map(fn (QuestionItem $i, int $n): array => [
+                    (string) ($n + 1),
+                    $dash($i->blueprint['cp'] ?? null),
+                    $dash($i->blueprint['materi'] ?? null),
+                    $dash($i->blueprint['submateri'] ?? null),
+                    $dash($i->blueprint['indikator'] ?? null),
                     (string) $i->number,
-                    (string) ($i->blueprint['cp'] ?? '—'),
-                    (string) ($i->blueprint['materi'] ?? '—'),
-                    (string) ($i->blueprint['indikator'] ?? '—'),
-                    (string) ($i->blueprint['level'] ?? '—'),
+                    $dash($i->blueprint['level'] ?? null),
                     $i->type->label(),
                 ])->all()),
-                [5, 26, 18, 31, 7, 13],
+                [4, 19, 11, 15, 29, 6, 8, 8],
+                true,
+                [1, 2, 3],
             );
 
             // Tanda tangan penulis soal.

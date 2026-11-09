@@ -230,6 +230,29 @@ class MathAndImageTest extends TestCase
         $this->assertLessThanOrEqual(360, $raster->equation('\\frac{'.str_repeat('1234567890', 12).'}{2}', 360)['w']);
     }
 
+    public function test_blueprint_table_merges_equal_cp_cells(): void
+    {
+        $path = sys_get_temp_dir().'/bestie-merge-'.uniqid().'.docx';
+        $doc = new \App\Services\Documents\DocxBuilder('Times New Roman', 11, 1.5);
+        $doc->table([
+            ['No.', 'CP', 'Materi', 'Indikator'],
+            ['1', 'CP A', 'M1', 'i1'],
+            ['2', 'CP A', 'M1', 'i2'],
+            ['3', 'CP A', 'M2', 'i3'],
+            ['4', 'CP B', 'M2', 'i4'],
+        ], [10, 30, 20, 40], true, [1, 2]);
+        $doc->save($path);
+
+        $zip = new \ZipArchive;
+        $zip->open($path);
+        $xml = (string) $zip->getFromName('word/document.xml');
+        $zip->close();
+        @unlink($path);
+
+        $this->assertSame(5, substr_count($xml, '<w:vMerge w:val="restart"/>')); // CP: A, B; Materi: M1, M2, M2 (di bawah CP B)
+        $this->assertSame(3, substr_count($xml, '<w:vMerge/>'));
+    }
+
     public function test_true_false_key_survives_split_runs_and_nested_stem_lists(): void
     {
         $block = static fn (string $t, ?array $list, array $runs): array => ['text' => $t, 'rich' => $t, 'bold' => false, 'list' => $list, 'runs' => $runs, 'images' => []];

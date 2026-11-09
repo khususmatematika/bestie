@@ -175,8 +175,9 @@ final class DocxBuilder
      * @param  list<list<string>>  $rows  baris pertama dianggap judul kolom bila $header true
      * @param  list<int>  $widths  persentase lebar kolom (jumlah 100)
      */
-    public function table(array $rows, array $widths, bool $header = true): self
+    public function table(array $rows, array $widths, bool $header = true, array $mergeColumns = []): self
     {
+        $merge = $this->verticalMerges($rows, $header, $mergeColumns);
         $total = 9000;
         $grid = '';
 
@@ -194,7 +195,17 @@ final class DocxBuilder
 
             foreach ($row as $c => $cell) {
                 $w = (int) round($total * ($widths[$c] ?? 10) / 100);
-                $xml .= '<w:tc><w:tcPr><w:tcW w:w="'.$w.'" w:type="dxa"/>'.($isHead ? '<w:shd w:val="clear" w:color="auto" w:fill="E5E7EB"/>' : '').'</w:tcPr>';
+                $vm = $merge[$i][$c] ?? null;
+                $xml .= '<w:tc><w:tcPr><w:tcW w:w="'.$w.'" w:type="dxa"/>'
+                    .($vm === 'restart' ? '<w:vMerge w:val="restart"/>' : ($vm === 'continue' ? '<w:vMerge/>' : ''))
+                    .($isHead ? '<w:shd w:val="clear" w:color="auto" w:fill="E5E7EB"/>' : '')
+                    .($vm !== null ? '<w:vAlign w:val="center"/>' : '').'</w:tcPr>';
+
+                if ($vm === 'continue') {
+                    $xml .= '<w:p/></w:tc>';
+
+                    continue;
+                }
 
                 foreach (explode("\n", $cell) as $line) {
                     $xml .= '<w:p>'.$this->paragraphProps(['after' => 40]).implode('', array_map(fn (array $r): string => $this->run($r), $this->richRuns($line, ['bold' => $isHead, 'size' => max(8, $this->sizePt - 2)]))).'</w:p>';
@@ -209,6 +220,32 @@ final class DocxBuilder
         $this->body .= $xml.'</w:tbl><w:p/>';
 
         return $this;
+    }
+
+    /**
+     * Sel kolom bertingkat (mis. Capaian Pembelajaran > Materi > Submateri) yang nilainya sama dengan baris di atasnya
+     * digabung ke bawah. Penggabungan kolom ke-n terputus bila kolom sebelumnya (yang lebih tinggi) terputus.
+     *
+     * @param  list<list<string>>  $rows
+     * @param  list<int>  $columns  indeks kolom, urut dari tingkat tertinggi
+     * @return array<int, array<int, string>>  [baris][kolom] => 'restart' | 'continue'
+     */
+    private function verticalMerges(array $rows, bool $header, array $columns): array
+    {
+        $out = [];
+        $first = $header ? 1 : 0;
+
+        for ($i = $first; $i < count($rows); $i++) {
+            $continues = $i > $first;
+
+            foreach ($columns as $c) {
+                $same = $continues && trim((string) ($rows[$i][$c] ?? '')) === trim((string) ($rows[$i - 1][$c] ?? ''));
+                $continues = $same;
+                $out[$i][$c] = $same ? 'continue' : 'restart';
+            }
+        }
+
+        return $out;
     }
 
     /**
