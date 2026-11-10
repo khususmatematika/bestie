@@ -388,3 +388,10 @@ Bentuk umum (huruf pilihan dari Bullets and Numbering, lalu tabel di bawahnya) k
 ### Pilihan jawaban harus memakai Bullet and Numbering
 
 Huruf "A." yang hanya diketik biasa TIDAK dibaca sebagai pilihan; pilihan hanya dikenali bila berupa daftar huruf Word (Bullet and Numbering). Tabel di bawah butir daftar huruf yang kosong menjadi isi pilihan itu.
+
+## Tenggat unggah & revisi: tidak menutup, hanya menandai terlambat
+
+Tenggat unggah/revisi pada periode tidak memblokir guru; yang memblokir hanya periode ditutup, paket terkunci, atau semester diarsipkan. Paket kini diberi penanda (lencana kuning) pada daftar guru, detail guru, daftar admin, inbox dan telaah validator:
+- "Lewat tenggat unggah": draft belum dikirim padahal tenggat unggah lewat; "Terlambat unggah": dikirim setelah tenggat unggah.
+- "Revisi terlambat (n nomor)": nomor diunggah ulang setelah tenggat revisi; "Lewat tenggat revisi": masih ada nomor "perlu ganti" setelah tenggat revisi.
+Tenggat berlaku sampai 23:59 WIB pada tanggalnya. Dihitung dari `submitted_at` dan `resubmitted_at` (tanpa kolom baru), lihat `PackagePresenter::lateness`. Tombol "Unggah ulang" pada guru adalah jalur revisi (versi baru), terpisah dari unggah awal.

@@ -11,6 +11,7 @@ import PageHeader from '@/Components/ui/PageHeader.vue';
 import Pagination from '@/Components/ui/Pagination.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import LateBadge from '@/Components/ui/LateBadge.vue';
 import type { PackageSummary, Paginated } from '@/types';
 
 const props = defineProps<{
@@ -183,7 +184,7 @@ function submitChange(): void {
                             {{ p.validator ?? '—' }}
                             <span v-if="p.is_self_validated" class="badge ml-1 bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-100"><ShieldCheck class="size-3.5" /> Mandiri</span>
                         </td>
-                        <td><StatusBadge :status="p.status" /></td>
+                        <td><div class="flex flex-wrap items-center gap-1.5"><StatusBadge :status="p.status" /><LateBadge :late="p.late" /></div></td>
                         <td class="min-w-36"><ProgressBar :value="p.progress" :label="`Progres ${p.title}`" /></td>
                         <td class="whitespace-nowrap text-xs text-ink-soft">{{ formatDateTime(p.submitted_at) }}</td>
                         <td>

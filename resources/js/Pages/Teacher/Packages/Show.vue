@@ -29,6 +29,7 @@ import Modal from '@/Components/ui/Modal.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import LateBadge from '@/Components/ui/LateBadge.vue';
 import type { DownloadsInfo, ItemDetail, PackageFileInfo, PackageSummary, TypeOption } from '@/types';
 
 interface PackageDetail extends PackageSummary {
@@ -173,6 +174,7 @@ function sizeLabel(bytes: number): string {
     <section class="card mb-6 p-6">
         <div class="flex flex-wrap items-center gap-3">
             <StatusBadge :status="pkg.status" />
+            <LateBadge :late="pkg.late" />
             <span v-if="pkg.is_self_validated" class="badge bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-100"><ShieldCheck class="size-3.5" /> Divalidasi Mandiri</span>
             <span v-if="pkg.validator" class="text-sm text-ink-soft">Validator: <strong class="text-ink">{{ pkg.validator }}</strong></span>
         </div>

@@ -8,6 +8,7 @@ import PageHeader from '@/Components/ui/PageHeader.vue';
 import Pagination from '@/Components/ui/Pagination.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import LateBadge from '@/Components/ui/LateBadge.vue';
 import type { PackageSummary, Paginated } from '@/types';
 
 const props = defineProps<{
@@ -30,7 +31,7 @@ function filter(status: string): void {
     <Head title="Paket Soal Saya" />
 
     <div class="@container">
-        <PageHeader title="Paket soal saya" description="Unggah kisi-kisi dan naskah, lalu kirim ke validator.">
+        <PageHeader title="Paket soal saya" description="Satu paket = satu mapel dan tingkat pada periode asesmen terpilih. Unggah kisi-kisi dan naskah, lalu kirim ke validator.">
             <Link v-if="can_create && pending.length" href="/teacher/packages/create" class="btn-primary"><FilePlus2 class="size-4" /> Buat paket</Link>
         </PageHeader>
 
@@ -79,6 +80,7 @@ function filter(status: string): void {
                             <p class="mt-1 flex items-center gap-1.5 text-xs text-ink-faint"><CalendarDays class="size-3.5 shrink-0" /> <span class="truncate">{{ p.period }}</span></p>
                         </div>
                         <StatusBadge :status="p.status" class="@xl/card:hidden" />
+                        <LateBadge :late="p.late" class="@xl/card:hidden" />
                     </div>
 
                     <div class="min-w-0 flex-1">
@@ -97,6 +99,7 @@ function filter(status: string): void {
 
                     <div class="flex items-center justify-between gap-3 border-t border-line pt-3 @xl/card:flex-col @xl/card:items-end @xl/card:border-0 @xl/card:pt-0">
                         <StatusBadge :status="p.status" class="hidden @xl/card:inline-flex" />
+                        <LateBadge :late="p.late" class="hidden @xl/card:inline-flex" />
                         <span class="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-primary-600 dark:text-primary-300">Buka paket <ArrowRight class="size-4 transition group-hover:translate-x-0.5" /></span>
                     </div>
                 </Link>

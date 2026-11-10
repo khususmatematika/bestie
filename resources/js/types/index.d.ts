@@ -57,6 +57,7 @@ export interface PackageSummary {
     first_reviewed_at: string | null;
     fixed_at: string | null;
     locked_at: string | null;
+    late: { upload: 'terlambat' | 'lewat_tenggat' | null; revision: 'terlambat' | 'lewat_tenggat' | null; revision_items: number };
 }
 
 export interface ItemBlueprint {

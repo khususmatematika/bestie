@@ -11,6 +11,7 @@ import SimilarityPanel, { type SimilarMatch } from '@/Components/package/Similar
 import TranslateButton from '@/Components/package/TranslateButton.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import LateBadge from '@/Components/ui/LateBadge.vue';
 import type { DownloadsInfo, ItemDetail, PackageSummary } from '@/types';
 
 interface NavItem {
@@ -139,6 +140,7 @@ const position = computed(() => props.nav.findIndex((n) => n.number === props.it
             <div class="flex flex-wrap items-center gap-2">
                 <h1 class="text-2xl font-extrabold tracking-tight text-ink">{{ pkg.title }}</h1>
                 <StatusBadge :status="pkg.status" />
+                <LateBadge :late="pkg.late" />
                 <span v-if="pkg.is_self_validated" class="badge bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-100"><ShieldCheck class="size-3.5" /> Divalidasi Mandiri</span>
             </div>
             <p class="mt-1 text-sm text-ink-soft">

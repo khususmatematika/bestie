@@ -9,6 +9,7 @@ import Pagination from '@/Components/ui/Pagination.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import StatCard from '@/Components/ui/StatCard.vue';
 import StatusBadge from '@/Components/ui/StatusBadge.vue';
+import LateBadge from '@/Components/ui/LateBadge.vue';
 import type { PackageSummary, Paginated } from '@/types';
 
 interface InboxPackage extends PackageSummary {
@@ -97,7 +98,7 @@ function deadlineText(deadline: string | null): string | null {
                         <ProgressBar :value="p.progress" :label="`Progres validasi ${p.title}`" />
                         <p class="mt-0.5 text-right text-[11px] text-ink-faint">{{ p.approved_items }}/{{ p.total_items }} disetujui</p>
                     </div>
-                    <StatusBadge :status="p.status" />
+                    <div class="flex flex-wrap items-center justify-end gap-1.5"><StatusBadge :status="p.status" /><LateBadge :late="p.late" /></div>
                 </Link>
             </li>
         </ul>

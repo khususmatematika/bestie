@@ -8,6 +8,8 @@ use App\Models\ItemReview;
 use App\Models\PackageFile;
 use App\Models\QuestionItem;
 use App\Models\QuestionPackage;
+use App\Enums\ItemStatus;
+use Illuminate\Support\Carbon;
 
 /**
  * Bentuk data paket/butir yang dikirim ke halaman Vue. Semua relasi yang dipakai WAJIB sudah dimuat
@@ -49,8 +51,50 @@ final class PackagePresenter
             'first_reviewed_at' => $package->first_reviewed_at?->toIso8601String(),
             'fixed_at' => $package->fixed_at?->toIso8601String(),
             'locked_at' => $package->locked_at?->toIso8601String(),
+            'late' => self::lateness($package),
         ];
     }
+
+    /**
+     * Keterlambatan terhadap tenggat periode. Tenggat tidak menutup unggahan; paket hanya ditandai terlambat.
+     * Unggah = pengiriman paket (submitted_at) vs tenggat unggah; revisi = unggah ulang nomor (resubmitted_at) vs tenggat revisi.
+     * Tenggat berlaku sampai 23:59 pada tanggalnya (zona waktu aplikasi). Relasi assessmentPeriod harus sudah dimuat.
+     *
+     * @return array{upload: string|null, revision: string|null, revision_items: int}
+     */
+    public static function lateness(QuestionPackage $package): array
+    {
+        $period = $package->assessmentPeriod;
+        $zone = (string) config('banksoal.timezone', 'Asia/Jakarta');
+        $endOf = static fn ($date): ?Carbon => $date === null ? null : Carbon::parse($date->toDateString(), $zone)->endOfDay();
+        $uploadEnd = $endOf($period->upload_deadline);
+        $revisionEnd = $endOf($period->revision_deadline);
+        $upload = null;
+        $revision = null;
+        $revisionItems = 0;
+
+        if ($uploadEnd !== null) {
+            if ($package->submitted_at !== null) {
+                $upload = $package->submitted_at->greaterThan($uploadEnd) ? 'terlambat' : null;
+            } elseif ($package->isDraft() && now()->greaterThan($uploadEnd)) {
+                $upload = 'lewat_tenggat';
+            }
+        }
+
+        if ($revisionEnd !== null && $package->submitted_at !== null) {
+            $revisionItems = QuestionItem::query()->where('package_id', $package->id)->where('resubmitted_at', '>', $revisionEnd)->count();
+
+            if ($revisionItems > 0) {
+                $revision = 'terlambat';
+            } elseif (! $package->isLocked() && now()->greaterThan($revisionEnd)
+                && QuestionItem::query()->where('package_id', $package->id)->where('status', ItemStatus::PerluGanti)->exists()) {
+                $revision = 'lewat_tenggat';
+            }
+        }
+
+        return ['upload' => $upload, 'revision' => $revision, 'revision_items' => $revisionItems];
+    }
+
 
     /**
      * Butir lengkap (isi + riwayat). Relasi reviews.validator dan revisions harus sudah dimuat.

@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Actions\Export\RequestFinalExport;
 use App\Enums\ExportStatus;
 use App\Models\PackageExport;
+use App\Support\PackagePresenter;
 use Tests\TestCase;
 
 /**
@@ -344,6 +345,25 @@ class PackageWorkflowTest extends TestCase
         $this->assertSame([1, 2, 3, 4], $package->items()->orderBy('number')->pluck('number')->all());
         $this->assertSame('Soal nomor 4', $package->items()->where('number', 3)->first()->stem);
         $this->assertSame('Soal nomor 5', $package->items()->where('number', 4)->first()->stem);
+    }
+
+    public function test_deadlines_do_not_block_uploads_but_mark_packages_late(): void
+    {
+        $this->period->update(['upload_deadline' => now()->subDays(3)->toDateString(), 'revision_deadline' => now()->subDay()->toDateString()]);
+        $package = $this->package(2);
+
+        // Draft melewati tenggat unggah: belum terlambat dikirim, tetapi ditandai; penyuntingan tetap diizinkan.
+        $this->assertSame('lewat_tenggat', PackagePresenter::lateness($package->load('assessmentPeriod'))['upload']);
+        $item = $package->items()->first();
+        app(\App\Actions\Package\SaveDraftItem::class)->update($item, $this->teacher, $item->content());
+
+        // Dikirim setelah tenggat: tetap berhasil, ditandai terlambat unggah.
+        $package = app(SubmitPackage::class)->handle($package, $this->teacher, $this->validator->id);
+        $this->assertSame('terlambat', PackagePresenter::lateness($package->load('assessmentPeriod'))['upload']);
+
+        // Tenggat tanggal hari ini masih berlaku sampai 23:59.
+        $this->period->update(['upload_deadline' => now(config('banksoal.timezone'))->toDateString()]);
+        $this->assertNull(PackagePresenter::lateness($package->refresh()->load('assessmentPeriod'))['upload']);
     }
 
     public function test_images_not_referenced_in_text_are_released_on_save(): void
