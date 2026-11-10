@@ -34,6 +34,15 @@ class ItemController extends Controller
         return back()->with('success', "Nomor {$item->number} ditambahkan.");
     }
 
+    public function renumber(Request $request, QuestionPackage $package, SaveDraftItem $action): RedirectResponse
+    {
+        Gate::authorize('manage', $package);
+
+        $changed = $action->renumber($package, $request->user());
+
+        return back()->with('success', $changed > 0 ? "Nomor soal dirapikan menjadi berurutan ({$changed} nomor diubah)." : 'Nomor soal sudah berurutan.');
+    }
+
     public function update(ItemContentRequest $request, QuestionItem $item, SaveDraftItem $action): RedirectResponse
     {
         $action->update($item, $request->user(), Arr::except($request->validated(), ['attachment']));

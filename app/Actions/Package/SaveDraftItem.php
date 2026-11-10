@@ -97,19 +97,49 @@ final class SaveDraftItem
 
             QuestionItem::query()->whereKey($item->id)->delete();
 
-            // Nomor sesudahnya maju satu (33 dihapus: 34→33, 35→34, …) agar urutan tetap rapat. Berurutan naik
-            // supaya tidak bentrok dengan indeks unik (package_id, number).
-            QuestionItem::query()
-                ->where('package_id', $package->id)
-                ->where('number', '>', $item->number)
-                ->orderBy('number')
-                ->get()
-                ->each(static fn (QuestionItem $later) => $later->update(['number' => $later->number - 1]));
+            // Nomor dirapatkan lagi (33 dihapus: 34→33, 35→34, …); celah lama ikut tertutup.
+            $this->compactNumbers($package);
 
             $this->recalculate->handle($package);
 
             ActivityLogger::log('item.deleted_draft', $package, ['number' => $item->number], $teacher);
         });
+    }
+
+    /**
+     * Merapikan nomor paket draft menjadi 1, 2, 3, … sesuai urutan sekarang (menutup celah akibat penghapusan lama).
+     *
+     * @return int jumlah nomor yang berubah
+     */
+    public function renumber(QuestionPackage $package, User $teacher): int
+    {
+        return DB::transaction(function () use ($package, $teacher): int {
+            $package = $this->lockedDraft($package, $teacher);
+            $changed = $this->compactNumbers($package);
+
+            if ($changed > 0) {
+                ActivityLogger::log('item.renumbered_draft', $package, ['changed' => $changed], $teacher);
+            }
+
+            return $changed;
+        });
+    }
+
+    /**
+     * Berurutan naik: nomor baru selalu ≤ nomor lama sehingga tidak bentrok dengan indeks unik (package_id, number).
+     */
+    private function compactNumbers(QuestionPackage $package): int
+    {
+        $changed = 0;
+
+        QuestionItem::query()->where('package_id', $package->id)->orderBy('number')->get()->each(function (QuestionItem $item, int $index) use (&$changed): void {
+            if ($item->number !== $index + 1) {
+                $item->update(['number' => $index + 1]);
+                $changed++;
+            }
+        });
+
+        return $changed;
     }
 
     private function lockedDraft(QuestionPackage $package, User $teacher): QuestionPackage

@@ -8,6 +8,7 @@ import {
     LoaderCircle,
     Lock,
     Pencil,
+    ListOrdered,
     RefreshCw,
     Send,
     ShieldCheck,
@@ -97,6 +98,12 @@ function lastNote(item: ItemDetail): string | null {
 
 function addItem(): void {
     router.post(`/teacher/packages/${props.pkg.id}/items`, {}, { preserveScroll: true });
+}
+
+const hasGap = computed(() => props.items.some((i, idx) => i.number !== idx + 1));
+
+function renumber(): void {
+    router.post(`/teacher/packages/${props.pkg.id}/renumber`, {}, { preserveScroll: true });
 }
 
 async function removeItem(item: ItemDetail): Promise<void> {
@@ -261,7 +268,10 @@ function sizeLabel(bytes: number): string {
             <section class="card overflow-hidden">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
                     <h2 class="text-base font-bold text-ink">Nomor soal ({{ items.length }})</h2>
-                    <button v-if="pkg.can_edit" type="button" class="btn-secondary btn-sm" @click="addItem"><FilePlus2 class="size-3.5" /> Tambah nomor</button>
+                    <div v-if="pkg.can_edit" class="flex flex-wrap items-center gap-2">
+                        <button v-if="hasGap" type="button" class="btn-secondary btn-sm" title="Ubah nomor menjadi 1, 2, 3, … tanpa celah" @click="renumber"><ListOrdered class="size-3.5" /> Rapikan nomor</button>
+                        <button type="button" class="btn-secondary btn-sm" @click="addItem"><FilePlus2 class="size-3.5" /> Tambah nomor</button>
+                    </div>
                 </div>
 
                 <p v-if="needChange.length && pkg.can_revise" class="m-4 rounded-xl bg-danger-50 p-3 text-sm font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-500" role="alert">

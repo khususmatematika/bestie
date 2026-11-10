@@ -347,6 +347,21 @@ class PackageWorkflowTest extends TestCase
         $this->assertSame('Soal nomor 5', $package->items()->where('number', 4)->first()->stem);
     }
 
+    public function test_renumber_closes_existing_gaps_and_delete_compacts(): void
+    {
+        $package = $this->package(6);
+        // Celah lama (mis. hasil penghapusan sebelum perbaikan): 1,2,3,4,5,6 → 1,2,3,6 dst.
+        $package->items()->whereIn('number', [4, 5])->delete();
+        $this->assertSame([1, 2, 3, 6], $package->items()->orderBy('number')->pluck('number')->all());
+
+        $this->actingAs($this->teacher)->post("/teacher/packages/{$package->id}/renumber")->assertRedirect();
+        $this->assertSame([1, 2, 3, 4], $package->items()->orderBy('number')->pluck('number')->all());
+        $this->assertSame('Soal nomor 6', $package->items()->where('number', 4)->first()->stem);
+
+        $this->actingAs($this->teacher)->post("/teacher/packages/{$package->id}/renumber")->assertRedirect();
+        $this->assertSame([1, 2, 3, 4], $package->items()->orderBy('number')->pluck('number')->all());
+    }
+
     public function test_deadlines_do_not_block_uploads_but_mark_packages_late(): void
     {
         $this->period->update(['upload_deadline' => now()->subDays(3)->toDateString(), 'revision_deadline' => now()->subDay()->toDateString()]);

@@ -122,6 +122,7 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
         Route::post('/packages/{package}/files', [TeacherPackageFileController::class, 'store'])->name('packages.files.store');
         Route::post('/packages/{package}/submit', [TeacherPackageController::class, 'submit'])->middleware('not.impersonating')->name('packages.submit');
         Route::post('/packages/{package}/items', [TeacherItemController::class, 'store'])->name('items.store');
+        Route::post('/packages/{package}/renumber', [TeacherItemController::class, 'renumber'])->name('items.renumber');
         Route::post('/packages/{package}/revision-document', [TeacherItemController::class, 'reviseDocument'])->name('items.revise-document');
         Route::put('/items/{item}', [TeacherItemController::class, 'update'])->name('items.update');
         Route::delete('/items/{item}', [TeacherItemController::class, 'destroy'])->name('items.destroy');

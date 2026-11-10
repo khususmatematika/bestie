@@ -395,3 +395,7 @@ Tenggat unggah/revisi pada periode tidak memblokir guru; yang memblokir hanya pe
 - "Lewat tenggat unggah": draft belum dikirim padahal tenggat unggah lewat; "Terlambat unggah": dikirim setelah tenggat unggah.
 - "Revisi terlambat (n nomor)": nomor diunggah ulang setelah tenggat revisi; "Lewat tenggat revisi": masih ada nomor "perlu ganti" setelah tenggat revisi.
 Tenggat berlaku sampai 23:59 WIB pada tanggalnya. Dihitung dari `submitted_at` dan `resubmitted_at` (tanpa kolom baru), lihat `PackagePresenter::lateness`. Tombol "Unggah ulang" pada guru adalah jalur revisi (versi baru), terpisah dari unggah awal.
+
+### Rapikan nomor soal
+
+Hapus nomor pada draft kini merapatkan seluruh nomor menjadi 1, 2, 3, … (celah lama ikut tertutup). Untuk paket yang sudah punya celah (mis. 30, 31, 32, 36, 37), guru menekan tombol "Rapikan nomor" di halaman paket (muncul hanya bila ada celah, hanya pada draft). Aksi tercatat `item.renumbered_draft`.
