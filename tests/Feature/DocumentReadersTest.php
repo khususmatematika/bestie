@@ -41,4 +41,21 @@ class DocumentReadersTest extends TestCase
         $this->assertSame('Menentukan ibu kota', $rows[0]['indikator_soal']);
         $this->assertSame('C1', $rows[0]['level_kognitif']);
     }
+
+    public function test_line_breaks_in_text_become_word_line_breaks(): void
+    {
+        $path = sys_get_temp_dir().'/br-'.uniqid().'.docx';
+        $doc = new DocxBuilder;
+        $doc->runs([['text' => "Kepada Yth. Bapak HRD\nPT Digital Kreatif\nJakarta Pusat"]]);
+        $doc->save($path);
+
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($path));
+        $xml = (string) $zip->getFromName('word/document.xml');
+        $zip->close();
+        @unlink($path);
+
+        $this->assertSame(2, substr_count($xml, '<w:br/>'));
+        $this->assertStringNotContainsString("HRD\nPT", $xml);
+    }
 }

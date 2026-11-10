@@ -334,6 +334,18 @@ class PackageWorkflowTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_deleting_a_draft_item_renumbers_the_following_ones(): void
+    {
+        $package = $this->package(5);
+        $third = $package->items()->where('number', 3)->first();
+
+        $this->actingAs($this->teacher)->delete("/teacher/items/{$third->id}")->assertRedirect();
+
+        $this->assertSame([1, 2, 3, 4], $package->items()->orderBy('number')->pluck('number')->all());
+        $this->assertSame('Soal nomor 4', $package->items()->where('number', 3)->first()->stem);
+        $this->assertSame('Soal nomor 5', $package->items()->where('number', 4)->first()->stem);
+    }
+
     public function test_images_not_referenced_in_text_are_released_on_save(): void
     {
         Storage::fake('local');

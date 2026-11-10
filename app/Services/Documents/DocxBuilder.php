@@ -574,7 +574,7 @@ final class DocxBuilder
             .(isset($r['size']) ? '<w:sz w:val="'.((int) $r['size'] * 2).'"/><w:szCs w:val="'.((int) $r['size'] * 2).'"/>' : '')
             .($r['sup'] ?? false ? '<w:vertAlign w:val="superscript"/>' : ($r['sub'] ?? false ? '<w:vertAlign w:val="subscript"/>' : ''));
 
-        return '<w:r>'.($props === '' ? '' : '<w:rPr>'.$props.'</w:rPr>').'<w:t xml:space="preserve">'.$this->esc($r['text']).'</w:t></w:r>';
+        return '<w:r>'.($props === '' ? '' : '<w:rPr>'.$props.'</w:rPr>').'<w:t xml:space="preserve">'.implode('</w:t><w:br/><w:t xml:space="preserve">', array_map(fn (string $line): string => $this->esc($line), explode("\n", str_replace(["\r\n", "\r"], "\n", (string) $r['text'])))).'</w:t></w:r>';
     }
 
     /** Huruf dengan pinyin di atasnya (w:ruby), seperti fitur Phonetic Guide di Word. */

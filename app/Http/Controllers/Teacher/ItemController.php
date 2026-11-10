@@ -57,7 +57,7 @@ class ItemController extends Controller
     {
         $action->delete($item, $request->user());
 
-        return back()->with('success', "Nomor {$item->number} dihapus.");
+        return back()->with('success', "Nomor {$item->number} dihapus; nomor sesudahnya bergeser naik.");
     }
 
     public function revise(ItemContentRequest $request, QuestionItem $item, UploadItemRevision $action): RedirectResponse

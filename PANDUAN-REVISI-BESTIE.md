@@ -358,3 +358,33 @@ Tata letak memakai *container query*, sehingga ikut menyesuaikan saat sidebar di
 Lebar gambar pada naskah CBT: semua gambar hasil konversi (equation dan teks Mandarin berpinyin) dibatasi maksimum 360 px layar (`CbtDocument::IMAGE_MAX_WIDTH`). Equation panjang dilipat ke beberapa baris pada operator/koma tingkat teratas; bagian yang masih terlalu lebar diperkecil proporsional (piksel tetap tajam). Gambar unggahan dibatasi 7–9 cm.
 
 Kisi-kisi pada naskah final: kolom disamakan dengan template kisi-kisi (No., Capaian Pembelajaran, Materi, Submateri, Indikator Soal, No. Soal, Level Kognitif, Bentuk Soal). Baris dikelompokkan menurut CP > Materi > Submateri, dan sel yang sama digabung menjadi satu baris.
+
+## Ganti akun (admin)
+
+Admin dapat masuk sebagai guru/validator lewat menu profil (kanan atas) > "Ganti akun": cari nama/NIP/email lalu pilih "Sebagai Guru" atau "Sebagai Validator". Selama itu muncul bilah kuning di bawah layar dengan tombol "Kembali ke <nama admin>". Aturan: hanya akun aktif non-admin; ubah profil/kata sandi diblokir; awal dan akhir sesi tercatat di log aktivitas (`auth.impersonate.start/stop`), dan aktivitas lain selama itu diberi `impersonated_by` (ID admin).
+
+### Ganti akun: pengetatan keamanan
+
+- Sesi menyamar dibatasi waktu (bawaan 30 menit, ubah lewat `BANKSOAL_IMPERSONATE_MINUTES` di `.env`). Lewat batas, admin otomatis dikembalikan ke akunnya (log `auth.impersonate.stop` dengan `reason: expired`). Bilah bawah menampilkan jam berakhir.
+- Selama menyamar, aksi keputusan validator (setujui, minta perbaikan, buka kembali) dan kirim paket oleh guru diblokir (403); admin tetap dapat membantu mengedit soal.
+
+## Formulir soal guru: kotak teks menyesuaikan isi
+
+Kotak teks soal, pilihan jawaban (A–E), kunci jawaban, indikator, dan pedoman skor kini tumbuh mengikuti panjang isinya (tanpa scroll ke samping/dalam kotak). Pilihan jawaban berupa kotak teks satu baris yang membungkus ke bawah; Enter pada pilihan/kunci tidak membuat baris baru. Direktif `v-autogrow` ada di `resources/js/Composables/autogrow.ts`.
+
+## Pilihan jawaban multibaris (mis. alamat surat)
+
+Baris baru di dalam satu pilihan jawaban kini dipertahankan: (1) paragraf lanjutan setelah pilihan di Word (`ExamDocxParser`) disimpan sebagai baris baru, bukan digabung spasi; (2) kotak edit pilihan/kunci menerima Enter; (3) tampilan memakai `whitespace-pre-line`; (4) ekspor Word/CBT mengubah baris baru menjadi `<w:br/>` (`DocxBuilder::run`). Naskah yang sudah terunggah perlu diunggah ulang agar baris barunya terbaca.
+
+## Hapus nomor soal & pilihan jawaban berbentuk tabel
+
+- Hapus nomor pada paket draft: nomor sesudahnya otomatis maju satu (hapus 33 → 34 menjadi 33, dst.), diproses berurutan agar tidak bentrok dengan indeks unik (`SaveDraftItem::delete`).
+- Tabel pilihan: bila naskah Word memuat tabel yang kolom pertamanya huruf A, B, C, … berurutan (minimal 2 baris), tiap baris menjadi satu pilihan berupa gambar tabel (kolom huruf dibuang, judul kolom di atas huruf A ikut diulang pada tiap pilihan). Teks merah pada baris dibaca sebagai kunci. Tabel yang diletakkan tepat di bawah satu pilihan tetap menempel pada pilihan itu (cara lama).
+
+### Pilihan jawaban: tabel di bawah huruf pilihan
+
+Bentuk umum (huruf pilihan dari Bullets and Numbering, lalu tabel di bawahnya) kini dibaca; huruf "A." yang hanya diketik biasa tetap bukan pilihan: tabel menjadi isi pilihan itu (gambar tabel), teks merah di dalam tabel/huruf dibaca sebagai kunci. Butir daftar huruf yang kosong tidak lagi dibuang bila di bawahnya ada tabel/gambar.
+
+### Pilihan jawaban harus memakai Bullet and Numbering
+
+Huruf "A." yang hanya diketik biasa TIDAK dibaca sebagai pilihan; pilihan hanya dikenali bila berupa daftar huruf Word (Bullet and Numbering). Tabel di bawah butir daftar huruf yang kosong menjadi isi pilihan itu.

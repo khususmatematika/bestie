@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Support\Impersonation;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,7 @@ class EnsurePasswordChanged
             return redirect()->route('login')->with('error', 'Akun Anda tidak aktif. Hubungi Admin.');
         }
 
-        if ($user !== null && $user->must_change_password) {
+        if ($user !== null && $user->must_change_password && ! Impersonation::active($request)) {
             return redirect()->route('password.force');
         }
 

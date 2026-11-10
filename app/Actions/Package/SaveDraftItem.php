@@ -96,6 +96,16 @@ final class SaveDraftItem
             $package = $this->lockedDraft(QuestionPackage::query()->findOrFail($item->package_id), $teacher);
 
             QuestionItem::query()->whereKey($item->id)->delete();
+
+            // Nomor sesudahnya maju satu (33 dihapus: 34→33, 35→34, …) agar urutan tetap rapat. Berurutan naik
+            // supaya tidak bentrok dengan indeks unik (package_id, number).
+            QuestionItem::query()
+                ->where('package_id', $package->id)
+                ->where('number', '>', $item->number)
+                ->orderBy('number')
+                ->get()
+                ->each(static fn (QuestionItem $later) => $later->update(['number' => $later->number - 1]));
+
             $this->recalculate->handle($package);
 
             ActivityLogger::log('item.deleted_draft', $package, ['number' => $item->number], $teacher);

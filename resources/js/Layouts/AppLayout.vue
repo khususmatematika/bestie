@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ChevronDown, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, School, UserRound, X } from '@lucide/vue';
+import { ArrowLeftRight, ChevronDown, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, School, UserRound, X } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import ImpersonationBar from '@/Components/layout/ImpersonationBar.vue';
 import NotificationBell from '@/Components/layout/NotificationBell.vue';
+import SwitchAccountModal from '@/Components/layout/SwitchAccountModal.vue';
 import ThemeToggle from '@/Components/layout/ThemeToggle.vue';
 import ConfirmDialog from '@/Components/ui/ConfirmDialog.vue';
 import CredentialModal from '@/Components/ui/CredentialModal.vue';
@@ -92,6 +94,13 @@ function hideTip(): void {
 }
 
 const userMenuOpen = ref(false);
+const switchOpen = ref(false);
+const canSwitchAccount = computed(() => activeRole.value === 'admin' && !auth.value?.impersonating);
+
+function openSwitchAccount(): void {
+    userMenuOpen.value = false;
+    switchOpen.value = true;
+}
 const userMenu = ref<HTMLElement | null>(null);
 
 function isActive(href: string, match?: string): boolean {
@@ -265,6 +274,9 @@ watch(
                                 <div class="my-1 border-t border-line" />
                             </template>
 
+                            <button v-if="canSwitchAccount" type="button" role="menuitem" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink hover:bg-surface-2" @click="openSwitchAccount">
+                                <ArrowLeftRight class="size-4 text-ink-faint" /> Ganti akun
+                            </button>
                             <Link href="/profil" role="menuitem" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink hover:bg-surface-2" @click="userMenuOpen = false">
                                 <UserRound class="size-4 text-ink-faint" /> Profil &amp; keamanan
                             </Link>
@@ -300,6 +312,8 @@ watch(
 
         <FlashToasts />
         <CredentialModal />
+        <SwitchAccountModal v-if="canSwitchAccount" :open="switchOpen" @close="switchOpen = false" />
+        <ImpersonationBar />
         <ConfirmDialog />
     </div>
 </template>

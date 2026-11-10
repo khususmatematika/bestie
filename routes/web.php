@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AssessmentPeriodController;
 use App\Http\Controllers\Admin\ArchiveController;
 use App\Http\Controllers\Admin\AssignmentController;
 use App\Http\Controllers\Admin\GradeLevelController;
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\SemesterController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\PackageController as AdminPackageController;
@@ -61,8 +62,11 @@ Route::get('/', function (Request $request) {
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
+    // Kembali ke akun admin setelah "Ganti akun" (hanya berlaku bila sesi memang sedang menyamar).
+    Route::post('/switch-account/leave', [ImpersonationController::class, 'leave'])->name('impersonate.leave');
+
     Route::get('/ganti-password', [PasswordController::class, 'force'])->name('password.force');
-    Route::put('/ganti-password', [PasswordController::class, 'update'])->middleware('throttle:6,1')->name('password.update');
+    Route::put('/ganti-password', [PasswordController::class, 'update'])->middleware(['not.impersonating', 'throttle:6,1'])->name('password.update');
 });
 
 /*
@@ -101,8 +105,8 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
     Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
 
     Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profil', [ProfileController::class, 'update'])->name('profile.update');
-    Route::put('/profil/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:6,1')->name('profile.password');
+    Route::put('/profil', [ProfileController::class, 'update'])->middleware('not.impersonating')->name('profile.update');
+    Route::put('/profil/password', [ProfileController::class, 'updatePassword'])->middleware(['not.impersonating', 'throttle:6,1'])->name('profile.password');
 
     // Guru
     Route::middleware('active.role:teacher')->prefix('teacher')->name('teacher.')->group(function (): void {
@@ -116,7 +120,7 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
         Route::put('/packages/{package}', [TeacherPackageController::class, 'update'])->name('packages.update');
         Route::delete('/packages/{package}', [TeacherPackageController::class, 'destroy'])->name('packages.destroy');
         Route::post('/packages/{package}/files', [TeacherPackageFileController::class, 'store'])->name('packages.files.store');
-        Route::post('/packages/{package}/submit', [TeacherPackageController::class, 'submit'])->name('packages.submit');
+        Route::post('/packages/{package}/submit', [TeacherPackageController::class, 'submit'])->middleware('not.impersonating')->name('packages.submit');
         Route::post('/packages/{package}/items', [TeacherItemController::class, 'store'])->name('items.store');
         Route::post('/packages/{package}/revision-document', [TeacherItemController::class, 'reviseDocument'])->name('items.revise-document');
         Route::put('/items/{item}', [TeacherItemController::class, 'update'])->name('items.update');
@@ -132,14 +136,18 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
         // Inbox & telaah (langkah 4-6)
         Route::get('/inbox', [InboxController::class, 'index'])->name('inbox');
         Route::get('/packages/{package}/review/{number?}', [ReviewController::class, 'show'])->whereNumber('number')->name('review');
-        Route::post('/items/{item}/approve', [ReviewController::class, 'approve'])->name('items.approve');
-        Route::post('/items/{item}/request-change', [ReviewController::class, 'requestChange'])->name('items.request-change');
-        Route::post('/items/{item}/reopen', [ReviewController::class, 'reopen'])->name('items.reopen');
+        Route::post('/items/{item}/approve', [ReviewController::class, 'approve'])->middleware('not.impersonating')->name('items.approve');
+        Route::post('/items/{item}/request-change', [ReviewController::class, 'requestChange'])->middleware('not.impersonating')->name('items.request-change');
+        Route::post('/items/{item}/reopen', [ReviewController::class, 'reopen'])->middleware('not.impersonating')->name('items.reopen');
     });
 
     // Admin
     Route::middleware('active.role:admin')->prefix('admin')->name('admin.')->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+
+        // Ganti akun: masuk sebagai guru/validator
+        Route::get('/switch-account/users', [ImpersonationController::class, 'search'])->middleware('throttle:60,1')->name('impersonate.search');
+        Route::post('/switch-account/{user}', [ImpersonationController::class, 'start'])->middleware('throttle:20,1')->name('impersonate.start');
 
         // Akademik & multi semester
         Route::resource('academic-years', AcademicYearController::class)->only(['index', 'store', 'update', 'destroy']);

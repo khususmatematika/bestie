@@ -8,6 +8,7 @@ use App\Models\AssessmentPeriod;
 use App\Models\User;
 use App\Support\ActiveRole;
 use App\Support\CurrentPeriod;
+use App\Support\Impersonation;
 use App\Support\Settings;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -75,6 +76,10 @@ class HandleInertiaRequests extends Middleware
             ],
             'roles' => $user->getRoleNames()->values()->all(),
             'active_role' => ActiveRole::current($request),
+            'impersonating' => ($adminId = Impersonation::impersonatorId($request)) === null ? null : [
+                'admin_name' => User::query()->whereKey($adminId)->value('name'),
+                'expires_at' => ($at = Impersonation::expiresAt($request)) === null ? null : date('c', $at),
+            ],
         ];
     }
 

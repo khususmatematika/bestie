@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vAutogrow } from '@/Composables/autogrow';
 import { splitKey } from '@/Composables/matchingKey';
 import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from '@lucide/vue';
@@ -284,7 +285,7 @@ function submit(): void {
                 </FormField>
             </div>
             <FormField v-slot="{ id, invalid }" label="Indikator soal" :error="err('blueprint.indikator')" required>
-                <textarea :id="id" v-model="form.blueprint.indikator" rows="2" class="input" :class="{ 'input-error': invalid }" />
+                <textarea :id="id" v-model="form.blueprint.indikator" v-autogrow rows="2" class="input" :class="{ 'input-error': invalid }" />
             </FormField>
             <div class="grid gap-4 sm:grid-cols-3">
                 <FormField v-slot="{ id, invalid }" label="Level kognitif" :error="err('blueprint.level')">
@@ -318,7 +319,7 @@ function submit(): void {
                 <p class="w-full text-xs text-ink-faint">Klik kolom yang ingin diisi, lalu pilih simbol; rumus ditulis di antara \( dan \) dan tampil pada pratinjau. Rumus dari Word (Equation) otomatis terbaca.</p>
             </div>
             <FormField v-slot="{ id, invalid }" label="Teks soal" :error="form.errors.stem" hint="Gambar: salin (Ctrl+V) lalu tempel langsung di kolom ini, termasuk pada pilihan jawaban, pernyataan menjodohkan, dan kunci/pengecoh. Tebal/miring/garis bawah: blok teks lalu Ctrl+B / I / U. Rumus ditulis di antara \\( dan \\) dengan sintaks LaTeX, mis. \\(\\frac{15}{56}\\). Penanda ⟦(?:img|rb):…⟧ adalah gambar; hapus penanda untuk membuang gambar dari teks." required>
-                <textarea :id="id" v-model="form.stem" data-fmt="stem" rows="5" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'stem')" />
+                <textarea :id="id" v-model="form.stem" v-autogrow data-fmt="stem" rows="5" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'stem')" />
             </FormField>
             <div v-if="/\\\(|⟦(?:img|rb):|<(?:b|i|u|sub|sup)>/.test(form.stem)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Pratinjau</p>
@@ -327,9 +328,9 @@ function submit(): void {
 
             <div v-if="hasOptions || form.type === 'benar_salah'" class="space-y-2">
                 <p class="label">{{ form.type === 'benar_salah' ? 'Pernyataan (opsional, bila ada beberapa pernyataan Benar/Salah)' : form.type === 'menjodohkan' ? 'Pernyataan' : 'Pilihan jawaban' }}</p>
-                <div v-for="letter in LETTERS" :key="letter" class="flex items-center gap-2">
-                    <span class="w-6 text-center text-sm font-bold text-primary-700 dark:text-primary-300">{{ letter }}</span>
-                    <input v-model="form.options[letter]" :data-fmt="letter" class="input font-serif" :aria-label="`Pilihan ${letter}`" @paste="onPaste($event, letter)" />
+                <div v-for="letter in LETTERS" :key="letter" class="flex items-start gap-2">
+                    <span class="w-6 pt-2.5 text-center text-sm font-bold text-primary-700 dark:text-primary-300">{{ letter }}</span>
+                    <textarea v-model="form.options[letter]" v-autogrow :data-fmt="letter" rows="1" class="input min-w-0 flex-1 font-serif" :aria-label="`Pilihan ${letter}`" @paste="onPaste($event, letter)" />
                 </div>
                 <p v-if="form.errors.options" class="error-text" role="alert">{{ form.errors.options }}</p>
                 <div v-if="LETTERS.some((l) => /⟦(?:img|rb):|<(?:b|i|u|sub|sup)>|\\\(/.test(form.options[l] ?? ''))" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink">
@@ -341,8 +342,8 @@ function submit(): void {
 
             <div class="grid gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" :label="hasOptions ? 'Kunci jawaban' : 'Kunci / jawaban singkat'" :error="form.errors.answer_key" :hint="keyHint" :required="hasOptions">
-                    <textarea v-if="form.type === 'menjodohkan'" :id="id" v-model="form.answer_key" data-fmt="answer_key" rows="3" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'answer_key')" />
-                    <input v-else :id="id" v-model="form.answer_key" class="input" :class="{ 'input-error': invalid }" />
+                    <textarea v-if="form.type === 'menjodohkan'" :id="id" v-model="form.answer_key" v-autogrow data-fmt="answer_key" rows="3" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'answer_key')" />
+                    <textarea v-else :id="id" v-model="form.answer_key" v-autogrow rows="1" class="input" :class="{ 'input-error': invalid }" />
                 </FormField>
                 <div v-if="form.type === 'menjodohkan' && /⟦(?:img|rb):|<(?:b|i|u|sub|sup)>/.test(form.answer_key)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink sm:col-span-2">
                     <MathText :text="form.answer_key" :images="imageMap" />
@@ -352,7 +353,7 @@ function submit(): void {
                 </p>
             </div>
             <FormField v-slot="{ id, invalid }" label="Pedoman penskoran" :error="form.errors.scoring_guide" :hint="hasOptions ? 'Opsional untuk pilihan ganda.' : 'Wajib untuk uraian/isian bila kunci kosong.'">
-                <textarea :id="id" v-model="form.scoring_guide" data-fmt="scoring_guide" rows="3" class="input" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'scoring_guide')" />
+                <textarea :id="id" v-model="form.scoring_guide" v-autogrow data-fmt="scoring_guide" rows="3" class="input" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'scoring_guide')" />
             </FormField>
         </fieldset>
 

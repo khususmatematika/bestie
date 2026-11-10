@@ -41,6 +41,9 @@ final class DocxStructureReader
     /** @var array<int, array<int, string>> */
     private array $formats = [];
 
+    /** @var array<string, DOMDocument|null> */
+    private array $tableDocuments = [];
+
     /**
      * @return list<array{text: string, bold: bool, list: array{num_id: int, level: int, fmt: string}|null, runs: list<array{t: string, red: bool}>, images: list<string>}>
      */
@@ -87,11 +90,47 @@ final class DocxStructureReader
             } elseif ($node->localName === 'tbl') {
                 $tables++;
 
-                // Tabel dijadikan gambar (diisi saat media() dipanggil) agar tetap terbaca di CBT dan tampilan web.
-                if ($this->convertibleTable($node, $xpath)) {
+                // Tabel pilihan jawaban: tiap baris berawalan huruf A–E menjadi satu pilihan (gambar baris tabel).
+                $optionRows = $this->convertibleTable($node, $xpath) ? $this->optionRows($node, $xpath) : [];
+
+                if ($optionRows !== []) {
+                    foreach ($optionRows as $rowNumber => $tr) {
+                        $path = self::TABLE_PREFIX.$tables.'-r'.$rowNumber.'.png';
+                        $token = '⟦IMG:'.$path.'⟧';
+                        $runs = [];
+                        $images = [];
+                        $boldRuns = 0;
+                        $textRuns = 0;
+
+                        foreach ($xpath->query('.//w:p', $tr) ?: [] as $cellParagraph) {
+                            $this->collect($cellParagraph, $xpath, $runs, $images, $boldRuns, $textRuns);
+                        }
+
+                        $blocks[] = [
+                            'text' => $token,
+                            'rich' => $token,
+                            'bold' => false,
+                            'list' => ['num_id' => 900000 + $tables, 'level' => 0, 'fmt' => 'upperLetter'],
+                            // Hanya untuk mendeteksi kunci (teks merah); teks aslinya diganti gambar.
+                            'runs' => array_map(static fn (array $r): array => ['t' => $r['t'], 'red' => $r['red'] ?? false], $runs),
+                            'images' => [$path],
+                        ];
+                    }
+                } elseif ($this->convertibleTable($node, $xpath)) {
+                    // Tabel dijadikan gambar (diisi saat media() dipanggil) agar tetap terbaca di CBT dan tampilan web.
                     $path = self::TABLE_PREFIX.$tables.'.png';
                     $token = '⟦IMG:'.$path.'⟧';
-                    $blocks[] = ['text' => $token, 'rich' => $token, 'bold' => false, 'list' => null, 'runs' => [], 'images' => [$path]];
+                    // Teks merah di dalam tabel dibawa sebagai run agar kunci jawaban (tabel di bawah huruf pilihan) terdeteksi.
+                    $runs = [];
+                    $images = [];
+                    $boldRuns = 0;
+                    $textRuns = 0;
+
+                    foreach ($xpath->query('.//w:p', $node) ?: [] as $cellParagraph) {
+                        $this->collect($cellParagraph, $xpath, $runs, $images, $boldRuns, $textRuns);
+                    }
+
+                    $blocks[] = ['text' => $token, 'rich' => $token, 'bold' => false, 'list' => null, 'runs' => array_map(static fn (array $r): array => ['t' => $r['t'], 'red' => $r['red'] ?? false], $runs), 'images' => [$path]];
                 }
             }
         }
@@ -104,8 +143,8 @@ final class DocxStructureReader
      */
     public function media(string $docxPath, string $zipPath, int $maxBytes = 5 * 1024 * 1024): ?string
     {
-        if (str_starts_with($zipPath, self::TABLE_PREFIX)) {
-            return $this->tableImage($docxPath, (int) substr($zipPath, strlen(self::TABLE_PREFIX)));
+        if (preg_match('#^'.preg_quote(self::TABLE_PREFIX, '#').'(\d+)(?:-r(\d+))?\.png$#', $zipPath, $m) === 1) {
+            return $this->tableImage($docxPath, (int) $m[1], isset($m[2]) ? (int) $m[2] : null);
         }
 
         $zip = new ZipArchive;
@@ -137,18 +176,60 @@ final class DocxStructureReader
         return ($xpath->query('.//w:numPr/w:numId', $table)?->length ?? 0) === 0;
     }
 
-    private function tableImage(string $docxPath, int $number): ?string
+    /**
+     * Tabel pilihan jawaban: baris-baris yang sel pertamanya hanya berisi huruf A, B, C, … berurutan (minimal 2).
+     * Baris sebelum "A" dianggap judul kolom.
+     *
+     * @return array<int, DOMElement>  nomor baris (1-based) => <w:tr>
+     */
+    private function optionRows(DOMElement $table, DOMXPath $xpath): array
     {
-        $zip = new ZipArchive;
+        $found = [];
+        $expected = 0;
+        $index = 0;
 
-        if ($number < 1 || $zip->open($docxPath) !== true) {
+        foreach ($xpath->query('./w:tr', $table) ?: [] as $tr) {
+            $index++;
+
+            if (! $tr instanceof DOMElement) {
+                continue;
+            }
+
+            $first = $xpath->query('./w:tc', $tr)?->item(0);
+            $label = $first instanceof DOMElement ? trim($first->textContent) : '';
+
+            if ($expected < 5 && preg_match('/^([A-Ea-e])\s*[.)]?$/u', $label, $m) === 1 && mb_strtoupper($m[1]) === \App\Support\ItemContent::OPTION_LETTERS[$expected]) {
+                $found[$index] = $tr;
+                $expected++;
+            }
+        }
+
+        return count($found) >= 2 ? $found : [];
+    }
+
+    private function tableImage(string $docxPath, int $number, ?int $onlyRow = null): ?string
+    {
+        if ($number < 1) {
             return null;
         }
 
-        try {
-            $document = $this->part($zip, 'word/document.xml', true);
-        } finally {
-            $zip->close();
+        // Dokumen yang sama dipakai berulang (satu gambar per baris tabel pilihan): urai sekali saja.
+        $document = $this->tableDocuments[$docxPath] ?? null;
+
+        if ($document === null) {
+            $zip = new ZipArchive;
+
+            if ($zip->open($docxPath) !== true) {
+                return null;
+            }
+
+            try {
+                $document = $this->part($zip, 'word/document.xml', true);
+            } finally {
+                $zip->close();
+            }
+
+            $this->tableDocuments = [$docxPath => $document];
         }
 
         if ($document === null) {
@@ -164,8 +245,18 @@ final class DocxStructureReader
 
         $this->relationships = [];
         $rows = [];
+        $optionRows = $onlyRow === null ? [] : $this->optionRows($table, $xpath);
+        $firstOption = $optionRows === [] ? null : min(array_keys($optionRows));
+        $trIndex = 0;
 
         foreach ($xpath->query('./w:tr', $table) ?: [] as $tr) {
+            $trIndex++;
+
+            // Satu pilihan: judul kolom (bila ada) + baris pilihan itu saja.
+            if ($onlyRow !== null && $firstOption !== null && $trIndex >= $firstOption && $trIndex !== $onlyRow) {
+                continue;
+            }
+
             $row = [];
 
             foreach ($xpath->query('./w:tc', $tr) ?: [] as $tc) {
@@ -212,11 +303,13 @@ final class DocxStructureReader
             }
 
             if ($row !== []) {
-                $rows[] = $row;
+                // Kolom huruf (A, B, …) tidak ikut digambar; hurufnya sudah dibuat otomatis oleh aplikasi.
+                $rows[] = $firstOption !== null && count($row) > 1 ? array_slice($row, 1) : $row;
             }
         }
 
-        if ($rows === []) {
+        // Batas wajar agar tabel raksasa tidak menghabiskan memori saat digambar.
+        if ($rows === [] || count($rows) > 60 || max(array_map('count', $rows)) > 16) {
             return null;
         }
 

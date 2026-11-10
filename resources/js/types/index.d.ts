@@ -131,7 +131,7 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             app: { name: string; school: string };
-            auth: { user: AuthUser; roles: RoleKey[]; active_role: RoleKey | null } | null;
+            auth: { user: AuthUser; roles: RoleKey[]; active_role: RoleKey | null; impersonating: { admin_name: string | null; expires_at: string | null } | null } | null;
             context: {
                 period: { id: number; label: string; status: 'buka' | 'ditutup' } | null;
                 periods: PeriodOption[];

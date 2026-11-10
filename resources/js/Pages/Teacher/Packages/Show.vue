@@ -99,7 +99,7 @@ function addItem(): void {
 }
 
 async function removeItem(item: ItemDetail): Promise<void> {
-    const ok = await confirm({ title: `Hapus nomor ${item.number}?`, message: 'Nomor akan dihapus dari paket draft ini.', confirmLabel: 'Hapus', danger: true });
+    const ok = await confirm({ title: `Hapus nomor ${item.number}?`, message: 'Nomor akan dihapus dari paket draft ini, dan nomor sesudahnya bergeser naik (mis. 34 menjadi 33).', confirmLabel: 'Hapus', danger: true });
     if (ok) router.delete(`/teacher/items/${item.id}`, { preserveScroll: true });
 }
 

@@ -16,6 +16,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Ganti akun (admin masuk sebagai guru/validator)
+    |--------------------------------------------------------------------------
+    | Batas mutlak durasi sesi menyamar; setelahnya admin dikembalikan otomatis.
+    */
+    'impersonation' => [
+        'ttl_minutes' => (int) env('BANKSOAL_IMPERSONATE_MINUTES', 30),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Impor akun guru
     |--------------------------------------------------------------------------
     */

@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            \App\Http\Middleware\ImpersonationTimeout::class,
             SecurityHeaders::class,
             HandleInertiaRequests::class,
         ]);
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active.role' => EnsureActiveRole::class,
             'password.changed' => EnsurePasswordChanged::class,
+            'not.impersonating' => \App\Http\Middleware\NotImpersonating::class,
         ]);
 
         // Tamu diarahkan ke login; pengguna yang sudah login diarahkan ke beranda perannya.

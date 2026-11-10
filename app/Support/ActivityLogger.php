@@ -21,6 +21,10 @@ final class ActivityLogger
     {
         $causer ??= Auth::user();
 
+        if (! array_key_exists('impersonated_by', $properties) && ($by = Impersonation::impersonatorId()) !== null) {
+            $properties['impersonated_by'] = $by;
+        }
+
         return ActivityLog::query()->create([
             'causer_id' => $causer?->getKey(),
             'subject_type' => $subject?->getMorphClass(),

@@ -96,7 +96,10 @@ final class ExamDocxParser
                 continue;
             }
 
-            if ($text === '' && $block['images'] === []) {
+            // Butir daftar huruf yang kosong (isinya tabel/gambar di bawahnya) tetap menjadi pilihan; selain itu baris kosong dilewati.
+            $emptyLetter = $text === '' && $block['images'] === [] && $current !== null && $list !== null && $list['fmt'] === 'upperLetter';
+
+            if ($text === '' && $block['images'] === [] && ! $emptyLetter) {
                 $lastOptionList = null;
 
                 continue;
@@ -178,6 +181,17 @@ final class ExamDocxParser
                 continue;
             }
 
+            // Gambar/tabel tanpa teks tepat di bawah huruf pilihan yang masih kosong: menjadi isi pilihan itu.
+            if ($bare === '' && $current['options'] !== [] && trim((string) $current['options'][array_key_last($current['options'])]) === '') {
+                $last = array_key_last($current['options']);
+                $current['options'][$last] = $text;
+                $current['option_blocks'][$last] = $block;
+                $current['red'][$last] = ($current['red'][$last] ?? false) || $this->hasRed($block);
+                $current['images'] = [...$current['images'], ...$block['images']];
+
+                continue;
+            }
+
             // Gambar tanpa teks: milik butir ini bila belum ada pilihan, kalau tidak milik butir berikutnya.
             if ($bare === '') {
                 if ($current['options'] === []) {
@@ -214,9 +228,10 @@ final class ExamDocxParser
                 $current['stem_blocks'][] = $block;
                 $current['images'] = [...$current['images'], ...$block['images']];
             } else {
-                // Teks lanjutan setelah pilihan: gabungkan ke pilihan terakhir.
+                // Teks lanjutan setelah pilihan (paragraf berikutnya, mis. alamat surat): tetap di pilihan terakhir, sebagai baris baru.
                 $last = array_key_last($current['options']);
-                $current['options'][$last] .= ' '.$text;
+                $current['options'][$last] = trim($current['options'][$last]."\n".$text);
+                $current['red'][$last] = ($current['red'][$last] ?? false) || $this->hasRed($block);
             }
         }
 
@@ -326,7 +341,7 @@ final class ExamDocxParser
         $number = $q['number'];
         /** @var QuestionType|null $type */
         $type = $q['type'];
-        $options = $q['options'];
+        $options = array_filter($q['options'], static fn (string $t): bool => trim($t) !== '');
         $stem = trim(implode("\n", $q['stem']));
         $key = '';
 
