@@ -399,3 +399,7 @@ Tenggat berlaku sampai 23:59 WIB pada tanggalnya. Dihitung dari `submitted_at` d
 ### Rapikan nomor soal
 
 Hapus nomor pada draft kini merapatkan seluruh nomor menjadi 1, 2, 3, … (celah lama ikut tertutup). Untuk paket yang sudah punya celah (mis. 30, 31, 32, 36, 37), guru menekan tombol "Rapikan nomor" di halaman paket (muncul hanya bila ada celah, hanya pada draft). Aksi tercatat `item.renumbered_draft`.
+
+### Rapikan nomor pada paket yang sudah dikirim (admin)
+
+Guru hanya dapat merapikan nomor saat draft. Setelah dikirim/dalam validasi, admin merapikannya lewat ikon "Rapikan nomor" pada Monitoring Paket (muncul bila ada celah; tidak untuk draft/Fix/Terkunci). Hanya nomor yang berubah (31, 32, 36, 37 → 31, 32, 33, 34 bila diurutkan ulang dari awal); isi, riwayat revisi, dan telaah validator melekat pada butir sehingga ikut. Catatan validator yang menyebut nomor lama di dalam teksnya tidak diubah otomatis. Tercatat `package.renumbered_by_admin` beserta peta nomor.

@@ -178,6 +178,7 @@ Route::middleware(['auth', 'password.changed', ScopeAcademicPeriod::class])->gro
         Route::get('/packages/download', PackageDownloadController::class)->middleware('throttle:6,1')->name('packages.download');
         Route::delete('/packages/{package}', [AdminPackageController::class, 'destroy'])->name('packages.destroy');
         Route::post('/packages/{package}/lock', [AdminPackageController::class, 'lock'])->name('packages.lock');
+        Route::post('/packages/{package}/renumber', [AdminPackageController::class, 'renumber'])->name('packages.renumber');
         Route::post('/packages/{package}/change-validator', [AdminPackageController::class, 'changeValidator'])->name('packages.change-validator');
 
         // Arsip soal tahun lalu (kemiripan)

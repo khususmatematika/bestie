@@ -7,10 +7,12 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Package\ChangePackageValidator;
 use App\Actions\Package\DeletePackageAsAdmin;
 use App\Actions\Package\LockPackage;
+use App\Actions\Package\RenumberPackageAsAdmin;
 use App\Enums\PackageStatus;
 use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ChangeValidatorRequest;
+use App\Models\QuestionItem;
 use App\Models\QuestionPackage;
 use App\Models\Subject;
 use App\Models\User;
@@ -53,7 +55,11 @@ class PackageController extends Controller
             ->latest('id')
             ->paginate(15)
             ->withQueryString()
-            ->through(fn (QuestionPackage $p): array => PackagePresenter::summary($p));
+            ->through(function (QuestionPackage $p): array {
+                $row = QuestionItem::query()->where('package_id', $p->id)->toBase()->selectRaw('count(*) as c, max(number) as m')->first();
+
+                return PackagePresenter::summary($p) + ['number_gap' => $row !== null && (int) $row->c > 0 && (int) $row->c !== (int) $row->m];
+            });
 
         return Inertia::render('Admin/Packages/Index', [
             'packages' => $packages,
@@ -73,6 +79,19 @@ class PackageController extends Controller
         $action->handle($package, $request->user());
 
         return back()->with('success', 'Paket dikunci.');
+    }
+
+    public function renumber(Request $request, QuestionPackage $package, RenumberPackageAsAdmin $action): RedirectResponse
+    {
+        $map = $action->handle($package, $request->user());
+
+        if ($map === []) {
+            return back()->with('success', 'Nomor soal sudah berurutan.');
+        }
+
+        $text = collect($map)->map(fn (int $new, int $old): string => "{$old}→{$new}")->implode(', ');
+
+        return back()->with('success', 'Nomor soal dirapikan: '.$text.'.');
     }
 
     public function changeValidator(ChangeValidatorRequest $request, QuestionPackage $package, ChangePackageValidator $action): RedirectResponse

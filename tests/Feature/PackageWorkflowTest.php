@@ -362,6 +362,31 @@ class PackageWorkflowTest extends TestCase
         $this->assertSame([1, 2, 3, 4], $package->items()->orderBy('number')->pluck('number')->all());
     }
 
+    public function test_admin_can_renumber_a_submitted_package_but_not_a_fixed_one(): void
+    {
+        $package = $this->submitted(6);
+        $package->items()->whereIn('number', [3, 4])->delete();
+        $before = $package->items()->orderBy('number')->get(['id', 'number', 'status'])->keyBy('number');
+        $this->assertSame([1, 2, 5, 6], $before->keys()->all());
+
+        // Guru tidak dapat merapikan paket yang sudah dikirim (hanya draft).
+        $this->actingAs($this->teacher)->post("/teacher/packages/{$package->id}/renumber")->assertRedirect();
+        $this->assertSame([1, 2, 5, 6], $package->items()->orderBy('number')->pluck('number')->all());
+
+        $this->actingAs($this->admin)->post("/admin/packages/{$package->id}/renumber")->assertRedirect();
+        $after = $package->items()->orderBy('number')->get(['id', 'number', 'status']);
+
+        $this->assertSame([1, 2, 3, 4], $after->pluck('number')->all());
+        // Butir yang sama (id & status/telaah) hanya berganti nomor.
+        $this->assertSame($before[6]->id, $after->firstWhere('number', 4)->id);
+        $this->assertDatabaseHas('activity_logs', ['event' => 'package.renumbered_by_admin']);
+
+        $package->update(['status' => PackageStatus::Fix]);
+        $package->items()->orderBy('number')->first()->update(['number' => 9]);
+        $this->actingAs($this->admin)->post("/admin/packages/{$package->id}/renumber");
+        $this->assertSame(9, $package->items()->orderBy('number')->get()->last()->number);
+    }
+
     public function test_deadlines_do_not_block_uploads_but_mark_packages_late(): void
     {
         $this->period->update(['upload_deadline' => now()->subDays(3)->toDateString(), 'revision_deadline' => now()->subDay()->toDateString()]);

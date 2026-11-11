@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Archive, ChevronDown, Download, FolderOpen, Lock, LoaderCircle, Search, ShieldCheck, Trash2, UserRoundCog } from '@lucide/vue';
+import { Archive, ChevronDown, Download, FolderOpen, ListOrdered, Lock, LoaderCircle, Search, ShieldCheck, Trash2, UserRoundCog } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { formatDateTime } from '@/Composables/useFormat';
 import { useConfirm } from '@/Composables/useConfirm';
@@ -81,6 +81,11 @@ watch(search, () => {
 function setStatus(value: string): void {
     status.value = status.value === value ? '' : value;
     apply();
+}
+
+async function renumber(p: PackageSummary & { number_gap?: boolean }): Promise<void> {
+    const ok = await confirm({ title: 'Rapikan nomor soal?', message: `Nomor pada “${p.title}” akan diurutkan 1, 2, 3, … tanpa celah. Isi soal dan catatan validator tidak berubah, hanya nomornya.`, confirmLabel: 'Rapikan' });
+    if (ok) router.post(`/admin/packages/${p.id}/renumber`, {}, { preserveScroll: true });
 }
 
 async function lock(p: PackageSummary): Promise<void> {
@@ -190,6 +195,7 @@ function submitChange(): void {
                         <td>
                             <div class="flex justify-end gap-1">
                                 <a :href="`/packages/${p.id}/downloads/recap?format=docx`" class="btn-icon" :aria-label="`Unduh rekap ${p.title}`" title="Rekap validasi siap cetak (DOCX)"><Download class="size-4" /></a>
+                                <button v-if="(p as PackageSummary & { number_gap?: boolean }).number_gap && p.status !== 'fix' && p.status !== 'terkunci' && p.status !== 'draft'" type="button" class="btn-icon" :aria-label="`Rapikan nomor ${p.title}`" title="Nomor loncat: rapikan menjadi berurutan" @click="renumber(p)"><ListOrdered class="size-4" /></button>
                                 <button v-if="p.status !== 'fix' && p.status !== 'terkunci'" type="button" class="btn-icon hover:!text-danger-600" :aria-label="`Hapus paket ${p.title}`" title="Hapus paket" @click="removePackage(p)"><Trash2 class="size-4" /></button>
                                 <button v-if="p.validator && p.status !== 'terkunci'" type="button" class="btn-icon" :aria-label="`Ganti validator ${p.title}`" @click="openChange(p)"><UserRoundCog class="size-4" /></button>
                                 <button v-if="p.status === 'fix'" type="button" class="btn-secondary btn-sm" @click="lock(p)"><Lock class="size-3.5" /> Kunci</button>

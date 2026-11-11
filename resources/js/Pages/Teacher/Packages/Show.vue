@@ -267,7 +267,10 @@ function sizeLabel(bytes: number): string {
             <!-- Butir -->
             <section class="card overflow-hidden">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
-                    <h2 class="text-base font-bold text-ink">Nomor soal ({{ items.length }})</h2>
+                    <div>
+                        <h2 class="text-base font-bold text-ink">Nomor soal ({{ items.length }})</h2>
+                        <p v-if="hasGap && !pkg.can_edit" class="mt-0.5 text-xs text-warning-700 dark:text-warning-500">Nomor soal belum berurutan. Hubungi admin untuk merapikannya.</p>
+                    </div>
                     <div v-if="pkg.can_edit" class="flex flex-wrap items-center gap-2">
                         <button v-if="hasGap" type="button" class="btn-secondary btn-sm" title="Ubah nomor menjadi 1, 2, 3, … tanpa celah" @click="renumber"><ListOrdered class="size-3.5" /> Rapikan nomor</button>
                         <button type="button" class="btn-secondary btn-sm" @click="addItem"><FilePlus2 class="size-3.5" /> Tambah nomor</button>
