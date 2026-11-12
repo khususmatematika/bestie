@@ -150,7 +150,7 @@ async function remove(p: Period): Promise<void> {
 
     <Modal :open="open" :title="editing ? 'Ubah periode asesmen' : 'Tambah periode asesmen'" size="lg" @close="open = false">
         <form id="period-form" class="space-y-4" @submit.prevent="submit">
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" label="Semester" :error="form.errors.semester_id" required>
                     <select :id="id" v-model="form.semester_id" class="input" :class="{ 'input-error': invalid }">
                         <option value="" disabled>Pilih semester</option>
@@ -166,7 +166,7 @@ async function remove(p: Period): Promise<void> {
             <FormField v-slot="{ id, invalid }" label="Nama periode" :error="form.errors.name" required>
                 <input :id="id" v-model="form.name" class="input" :class="{ 'input-error': invalid }" placeholder="Sumatif Akhir Semester Ganjil" />
             </FormField>
-            <div class="grid gap-4 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <FormField v-slot="{ id, invalid }" label="Tenggat unggah" :error="form.errors.upload_deadline">
                     <input :id="id" v-model="form.upload_deadline" type="date" class="input" :class="{ 'input-error': invalid }" />
                 </FormField>

@@ -78,7 +78,7 @@ const description = computed(() =>
             <StatCard label="Paket Fix" :value="package_stats.fix" tone="success" hint="Siap dipakai" href="/teacher/packages?status=fix"><BadgeCheck class="size-6" /></StatCard>
         </div>
 
-        <div class="mb-6 grid gap-6 @4xl:grid-cols-3">
+        <div class="mb-6 grid grid-cols-1 gap-6 @4xl:grid-cols-3">
             <SectionCard class="@4xl:col-span-2" title="Paket saya pada periode ini" href="/teacher/packages" link-label="Semua paket" flush>
                 <PackageProgressList :packages="packages" role="teacher" empty-title="Belum ada paket" empty-description="Buat paket soal untuk mapel yang Anda ampu pada periode ini." />
             </SectionCard>
@@ -89,7 +89,7 @@ const description = computed(() =>
         </div>
 
         <SectionCard title="Penugasan mengajar" subtitle="Ketuk satu penugasan untuk mulai membuat paketnya" :count="assignments.length" flush>
-            <div v-if="assignments.length" class="grid gap-3 p-5 sm:p-6 @xl:grid-cols-2 @4xl:grid-cols-3">
+            <div v-if="assignments.length" class="grid grid-cols-1 gap-3 p-5 sm:p-6 @xl:grid-cols-2 @4xl:grid-cols-3">
                 <Link v-for="a in assignments" :key="a.id" href="/teacher/packages/create" class="group flex items-center gap-4 rounded-xl border border-line bg-surface p-4 transition hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-soft">
                     <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300"><BookOpen class="size-5" /></span>
                     <span class="min-w-0 flex-1">

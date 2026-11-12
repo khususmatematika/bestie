@@ -68,7 +68,7 @@ async function remove(row: ImportRow): Promise<void> {
     <PageHeader title="Arsip soal" description="Pembanding kemiripan untuk validator: naskah tahun lalu yang Anda impor, ditambah paket Fix semester lama yang otomatis ikut." />
 
   <div class="@container">
-    <div class="mb-6 grid gap-4 @xl:grid-cols-2">
+    <div class="mb-6 grid grid-cols-1 gap-4 @xl:grid-cols-2">
         <StatCard label="Butir arsip impor" :value="stats.imported_items" tone="primary"><Archive class="size-6" /></StatCard>
         <StatCard label="Butir paket Fix/terkunci (otomatis)" :value="stats.fixed_items" tone="success" href="/admin/packages"><FileText class="size-6" /></StatCard>
     </div>
@@ -93,7 +93,7 @@ async function remove(row: ImportRow): Promise<void> {
                             <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }} ({{ s.code }})</option>
                         </select>
                     </FormField>
-                    <div class="grid gap-3 @md:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-3 @md:grid-cols-2">
                         <FormField v-slot="{ id, invalid }" label="Tingkat (opsional)" :error="form.errors.grade_level_id">
                             <select :id="id" v-model="form.grade_level_id" class="input" :class="{ 'input-error': invalid }">
                                 <option value="">Semua / tidak diketahui</option>

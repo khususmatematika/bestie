@@ -195,7 +195,7 @@ async function remove(t: Teacher): Promise<void> {
                 <input :id="id" v-model="form.name" class="input" :class="{ 'input-error': invalid }" />
             </FormField>
             <p class="rounded-lg bg-surface-2 px-3 py-2 text-xs text-ink-soft">Isi <strong>email atau NIP</strong> (salah satu cukup). Keduanya dapat dipakai untuk masuk.</p>
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" label="Email" :error="form.errors.email">
                     <input :id="id" v-model="form.email" type="email" class="input" :class="{ 'input-error': invalid }" autocomplete="off" />
                 </FormField>

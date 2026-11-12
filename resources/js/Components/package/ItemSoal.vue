@@ -89,7 +89,7 @@ const keyText = computed(() => {
             </ul>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div v-if="item.answer_key" class="rounded-xl bg-surface-2 p-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Kunci jawaban</p>
                 <p class="mt-0.5 whitespace-pre-line text-sm font-semibold text-ink"><MathText :text="keyText" :images="item.image_map" alt="Gambar kunci jawaban" /></p>

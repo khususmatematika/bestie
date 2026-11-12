@@ -95,7 +95,7 @@ const faqs = [
     </PageHeader>
 
     <!-- Template -->
-    <section v-if="active === 'teacher'" class="card mb-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+    <section v-if="active === 'teacher'" class="card mb-6 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
         <a href="/templates/naskah" class="group flex items-center gap-4 rounded-xl border border-line p-4 transition hover:border-primary-400 hover:bg-surface-2">
             <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"><FileText class="size-6" /></span>
             <span class="min-w-0">
@@ -146,7 +146,7 @@ const faqs = [
     <!-- Alur status -->
     <section class="card mb-6 p-5 sm:p-6">
         <h2 class="text-base font-bold text-ink">Status paket</h2>
-        <ol class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ol class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <li v-for="(s, i) in statuses" :key="s.name" class="flex items-start gap-3 rounded-xl bg-surface-2 p-3">
                 <span class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-800">{{ i + 1 }}</span>
                 <span><span class="block text-sm font-bold text-ink">{{ s.name }}</span><span class="block text-xs text-ink-soft">{{ s.text }}</span></span>
@@ -158,7 +158,7 @@ const faqs = [
     <!-- Menulis naskah -->
     <section v-if="active === 'teacher'" class="card mb-6 p-5 sm:p-6">
         <h2 class="text-base font-bold text-ink">Menulis naskah (.docx) agar terbaca otomatis</h2>
-        <div class="mt-4 grid gap-6 lg:grid-cols-2">
+        <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <dl class="space-y-3">
                 <div v-for="r in rules" :key="r.t">
                     <dt class="text-sm font-bold text-ink">{{ r.t }}</dt>

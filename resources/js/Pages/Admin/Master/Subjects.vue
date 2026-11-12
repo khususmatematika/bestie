@@ -158,7 +158,7 @@ async function remove(s: Subject): Promise<void> {
 
     <Modal :open="open" :title="editing ? 'Ubah mapel' : 'Tambah mapel'" @close="open = false">
         <form id="subject-form" class="space-y-4" @submit.prevent="submit">
-            <div class="grid gap-4 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <FormField v-slot="{ id, invalid }" label="Kode" :error="form.errors.code" required>
                     <input :id="id" v-model="form.code" class="input font-mono uppercase" :class="{ 'input-error': invalid }" maxlength="20" placeholder="MAT" />
                 </FormField>

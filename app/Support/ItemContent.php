@@ -68,6 +68,8 @@ final class ItemContent
     {
         $text = is_scalar($value) ? (string) $value : '';
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text) ?? '';
+        // Spasi tak-terputus hasil salin dari Word dijadikan spasi biasa agar teks dapat turun baris (layar ponsel).
+        $text = str_replace(["\u{00A0}", "\u{202F}", "\u{2007}"], ' ', $text);
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         $text = preg_replace("/[ \t]+\n/", "\n", $text) ?? $text;
         $text = preg_replace("/\n{3,}/", "\n\n", $text) ?? $text;

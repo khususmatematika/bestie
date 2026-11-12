@@ -57,7 +57,7 @@ function deadlineText(deadline: string | null): string | null {
     <Head title="Inbox Telaah" />
     <PageHeader title="Inbox telaah" description="Paket dari guru yang memilih Anda sebagai validator pada periode terpilih. Buka satu paket untuk menelaah nomor demi nomor." />
 
-    <div class="mb-6 grid gap-4 sm:grid-cols-3">
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Paket baru" :value="counts.new" tone="primary"><Sparkles class="size-6" /></StatCard>
         <StatCard label="Sedang ditelaah / revisi" :value="counts.in_review" tone="warning"><RefreshCw class="size-6" /></StatCard>
         <StatCard label="Fix" :value="counts.fix" tone="success"><BadgeCheck class="size-6" /></StatCard>

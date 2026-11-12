@@ -115,7 +115,7 @@ function saveScope(): void {
     </section>
 
     <Modal :open="!!scopeFor" :title="`Cakupan validasi — ${scopeFor?.name ?? ''}`" description="Kosongkan semua centang jika validator boleh menerima paket dari semua mapel." @close="scopeFor = null">
-        <ul class="grid max-h-80 gap-1 overflow-y-auto sm:grid-cols-2">
+        <ul class="grid grid-cols-1 max-h-80 gap-1 overflow-y-auto sm:grid-cols-2">
             <li v-for="s in subjects" :key="s.id">
                 <label class="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink hover:bg-surface-2">
                     <input v-model="selected" type="checkbox" :value="s.id" class="size-4 accent-primary-600" />

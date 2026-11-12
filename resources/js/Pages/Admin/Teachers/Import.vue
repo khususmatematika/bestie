@@ -86,7 +86,7 @@ function sizeLabel(bytes: number | null): string {
 
     <PageHeader title="Impor akun guru" description="Unggah berkas Excel/CSV sesuai template. Sistem membuat akun, menautkan mapel &amp; tingkat, lalu menyiapkan kartu akun berisi kata sandi awal." />
 
-    <div class="grid gap-6 lg:grid-cols-5">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <section class="card p-6 lg:col-span-3">
             <div class="flex items-center justify-between gap-3">
                 <h2 class="text-base font-bold text-ink">1. Unggah berkas</h2>

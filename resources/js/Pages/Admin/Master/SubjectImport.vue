@@ -49,7 +49,7 @@ function submit(): void {
 
     <PageHeader title="Impor mapel" description="Unggah berkas Excel/CSV berisi kode, nama, kategori, dan tingkat kelas. Hasilnya langsung diproses dan dilaporkan per baris." />
 
-    <div class="grid gap-6 lg:grid-cols-5">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <section class="card p-6 lg:col-span-3">
             <div class="flex items-center justify-between gap-3">
                 <h2 class="text-base font-bold text-ink">1. Unggah berkas</h2>

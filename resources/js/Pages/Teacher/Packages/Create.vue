@@ -42,13 +42,13 @@ function submit(): void {
         <EmptyState title="Tidak ada mapel yang tersisa" description="Semua mapel yang Anda ampu pada semester ini sudah memiliki paket, atau admin belum menautkan Anda ke mapel." />
     </section>
 
-    <form v-else class="grid gap-6 lg:grid-cols-5" @submit.prevent="submit">
+    <form v-else class="grid grid-cols-1 gap-6 lg:grid-cols-5" @submit.prevent="submit">
         <div class="space-y-6 lg:col-span-3">
             <section class="card p-6">
                 <h2 class="text-base font-bold text-ink">1. Pilih mapel &amp; tingkat</h2>
                 <fieldset class="mt-4">
                     <legend class="sr-only">Mapel dan tingkat</legend>
-                    <div class="grid gap-2 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <label
                             v-for="a in assignments"
                             :key="a.id"
@@ -70,7 +70,7 @@ function submit(): void {
                 <h2 class="text-base font-bold text-ink">2. Unggah berkas (opsional sekarang)</h2>
                 <p class="mt-1 text-sm text-ink-soft">Berkas diekstrak per nomor di latar belakang. Anda juga dapat membuat nomor secara manual di halaman paket.</p>
 
-                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <p class="label">Kisi-kisi <span class="font-normal text-ink-faint">(.docx atau .xlsx)</span></p>
                         <FilePicker v-model="form.kisi_kisi" accept=".xlsx,.docx,.pdf" label="Pilih berkas kisi-kisi" :invalid="!!form.errors.kisi_kisi" />

@@ -136,7 +136,7 @@ async function remove(s: Semester): Promise<void> {
                     <option v-for="t in terms" :key="t.value" :value="t.value">{{ t.label }}</option>
                 </select>
             </FormField>
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" label="Tanggal mulai" :error="form.errors.starts_on" required>
                     <input :id="id" v-model="form.starts_on" type="date" class="input" :class="{ 'input-error': invalid }" />
                 </FormField>

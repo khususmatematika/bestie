@@ -273,7 +273,7 @@ function submit(): void {
 
         <fieldset class="space-y-4">
             <legend class="text-sm font-bold text-ink">Kisi-kisi</legend>
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" label="Capaian pembelajaran" :error="err('blueprint.cp')">
                     <input :id="id" v-model="form.blueprint.cp" class="input" :class="{ 'input-error': invalid }" />
                 </FormField>
@@ -287,7 +287,7 @@ function submit(): void {
             <FormField v-slot="{ id, invalid }" label="Indikator soal" :error="err('blueprint.indikator')" required>
                 <textarea :id="id" v-model="form.blueprint.indikator" v-autogrow rows="2" class="input" :class="{ 'input-error': invalid }" />
             </FormField>
-            <div class="grid gap-4 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <FormField v-slot="{ id, invalid }" label="Level kognitif" :error="err('blueprint.level')">
                     <input :id="id" v-model="form.blueprint.level" list="levels" class="input" :class="{ 'input-error': invalid }" placeholder="mis. C3 Aplikasi" />
                     <datalist id="levels"><option v-for="l in ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'LOTS', 'HOTS']" :key="l" :value="l" /></datalist>
@@ -340,7 +340,7 @@ function submit(): void {
                 </div>
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" :label="hasOptions ? 'Kunci jawaban' : 'Kunci / jawaban singkat'" :error="form.errors.answer_key" :hint="keyHint" :required="hasOptions">
                     <textarea v-if="form.type === 'menjodohkan'" :id="id" v-model="form.answer_key" v-autogrow data-fmt="answer_key" rows="3" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'answer_key')" />
                     <textarea v-else :id="id" v-model="form.answer_key" v-autogrow rows="1" class="input" :class="{ 'input-error': invalid }" />

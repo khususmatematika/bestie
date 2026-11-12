@@ -76,7 +76,7 @@ const missingTeachers = computed(() => new Set(props.missing_packages.rows.map((
                 </div>
                 <span class="badge tabular-nums" :class="progress === 100 ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500' : 'bg-primary-50 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300'">{{ doneCount }}/{{ checklist.length }}</span>
             </div>
-            <ol class="mt-4 grid gap-2.5 @xl:grid-cols-2 @4xl:grid-cols-5">
+            <ol class="mt-4 grid grid-cols-1 gap-2.5 @xl:grid-cols-2 @4xl:grid-cols-5">
                 <li v-for="(item, n) in checklist" :key="item.label">
                     <Link :href="item.href" class="group flex h-full items-center gap-3 rounded-xl border p-3 transition hover:-translate-y-0.5 hover:shadow-soft" :class="item.done ? 'border-success-500/30 bg-success-50/60 dark:bg-success-500/10' : 'border-line bg-surface hover:border-primary-300'">
                         <span class="flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold" :class="item.done ? 'bg-success-500 text-white' : 'bg-primary-50 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300'">
@@ -89,7 +89,7 @@ const missingTeachers = computed(() => new Set(props.missing_packages.rows.map((
             </ol>
         </section>
 
-        <div class="grid items-start gap-6 @4xl:grid-cols-3">
+        <div class="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-3">
             <div class="space-y-6 @4xl:col-span-2">
                 <SectionCard title="Paket soal pada periode terpilih" href="/admin/packages" link-label="Monitoring paket">
                     <ul class="grid grid-cols-2 gap-3 @2xl:grid-cols-3">

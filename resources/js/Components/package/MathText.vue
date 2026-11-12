@@ -15,7 +15,8 @@ const parts = computed<Part[]>(() => {
     const re = /\\\(([\s\S]+?)\\\)|⟦img:(\d+)⟧|<(\/?)(b|i|u|sub|sup)>|⟦rb:([^|⟧]*)\|([^⟧]*)⟧/gi;
     let last = 0;
     let m: RegExpExecArray | null;
-    const src = props.text ?? '';
+    // Spasi tak-terputus (hasil salin dari Word) mencegah teks turun baris di layar sempit: jadikan spasi biasa.
+    const src = (props.text ?? '').replace(/[\u00A0\u202F\u2007]/g, ' ');
     const fmt = { b: false, i: false, u: false, sub: false, sup: false };
     const pushText = (value: string) => {
         if (value !== '') out.push({ kind: 'text', value, b: fmt.b, i: fmt.i, u: fmt.u, sub: fmt.sub, sup: fmt.sup });
@@ -40,7 +41,7 @@ const parts = computed<Part[]>(() => {
 </script>
 
 <template>
-    <span class="whitespace-pre-line">
+    <span class="whitespace-pre-line [overflow-wrap:anywhere]">
         <template v-for="(p, i) in parts" :key="i">
             <MathInline v-if="p.kind === 'math'" :latex="p.value" />
             <ruby v-else-if="p.kind === 'ruby'" class="ruby-text">{{ p.value }}<rp>(</rp><rt class="font-sans text-[0.55em] leading-none text-ink-soft">{{ p.rt }}</rt><rp>)</rp></ruby>

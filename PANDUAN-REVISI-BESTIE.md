@@ -412,3 +412,10 @@ Penyebab soal berbeda dianggap mirip: (1) kalimat perintah yang sama ("Manakah p
 - Bila pembanding ≥ 20 soal, potongan teks yang muncul di banyak soal diberi bobot kecil (IDF) dan kemiripan stem-saja dikurangi bila stemnya tidak khas.
 - Shingle pembanding dihitung sekali per permintaan (lebih cepat untuk rekap).
 Skor soal yang benar-benar sama tetap 100%.
+
+## Tampilan ponsel: teks soal melebar melewati layar
+
+Penyebab (dibuktikan dengan render komponen asli di Chromium lebar 390 px): teks salinan Word memuat spasi tak-terputus (NBSP), sehingga satu paragraf dianggap satu "kata" tak terputus; kolom grid otomatis pada halaman telaah melebar ±4.000 px dan terpotong oleh kartu. Perbaikan berlapis:
+- Spasi tak-terputus diubah menjadi spasi biasa saat disimpan (`ItemContent::text`) dan saat ditampilkan (`MathText`); teks lama otomatis tampil benar tanpa unggah ulang.
+- Semua grid berbreakpoint kini memakai `grid-cols-1` (kolom `minmax(0,1fr)`), dan sel telaah diberi `min-w-0`, sehingga isi tidak lagi bisa melebarkan kolom.
+- `MathText` memakai `overflow-wrap:anywhere` untuk kata/URL panjang.

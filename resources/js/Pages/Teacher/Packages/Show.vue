@@ -193,7 +193,7 @@ function sizeLabel(bytes: number): string {
             </li>
         </ol>
 
-        <div class="mt-5 grid gap-4 sm:grid-cols-2">
+        <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
                 <ProgressBar :value="pkg.progress" label="Progres validasi" />
                 <p class="mt-1 text-xs text-ink-faint">{{ pkg.approved_items }} dari {{ pkg.total_items }} nomor disetujui</p>
@@ -210,7 +210,7 @@ function sizeLabel(bytes: number): string {
     </section>
 
     <!-- Aksi paket: kisi-kisi, naskah soal, dan kirim ke validator (tiga kolom sejajar, di atas daftar nomor soal) -->
-    <div v-if="pkg.can_edit" class="mb-6 grid gap-6 lg:grid-cols-3">
+    <div v-if="pkg.can_edit" class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Kisi-kisi -->
         <section class="card p-6">
             <h2 class="text-base font-bold text-ink">Kisi-kisi</h2>
@@ -262,7 +262,7 @@ function sizeLabel(bytes: number): string {
         </section>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-3">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="min-w-0 space-y-6 lg:col-span-2">
             <!-- Butir -->
             <section class="card overflow-hidden">
@@ -312,7 +312,7 @@ function sizeLabel(bytes: number): string {
                         </div>
 
                         <div v-if="expanded === i.id" class="border-t border-line bg-surface-2/40 p-4 sm:p-6">
-                            <div class="grid gap-6 md:grid-cols-2">
+                            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div class="min-w-0"><p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Kisi-kisi</p><ItemKisi :item="i" /></div>
                                 <div class="min-w-0"><p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Soal</p><ItemSoal :item="i" ropes /></div>
                             </div>

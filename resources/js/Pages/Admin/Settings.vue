@@ -64,7 +64,7 @@ function submit(): void {
             <legend class="text-sm font-bold text-ink">Format naskah final</legend>
             <p class="text-sm text-ink-soft">Dipakai saat paket Fix dan naskah final dibuat otomatis. Hasil berupa DOCX{{ pdf_enabled ? ' dan PDF' : '' }}.</p>
 
-            <div class="grid gap-4 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <FormField v-slot="{ id, invalid }" label="Font" :error="form.errors['export_format.font']">
                     <select :id="id" v-model="form.export_format.font" class="input" :class="{ 'input-error': invalid }">
                         <option v-for="f in fonts" :key="f" :value="f">{{ f }}</option>
@@ -87,7 +87,7 @@ function submit(): void {
                 <textarea :id="id" v-model="form.export_format.kop_extra" rows="3" class="input" :class="{ 'input-error': invalid }" />
             </FormField>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField v-slot="{ id, invalid }" label="Awalan nomor dokumen" :error="form.errors['export_format.doc_prefix']">
                     <input :id="id" v-model="form.export_format.doc_prefix" class="input" :class="{ 'input-error': invalid }" />
                 </FormField>

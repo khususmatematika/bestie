@@ -163,7 +163,7 @@ const position = computed(() => props.nav.findIndex((n) => n.number === props.it
 
     <DownloadPanel :downloads="downloads" />
 
-    <div class="grid gap-6 lg:grid-cols-[13rem_1fr]">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[13rem_1fr]">
         <!-- Daftar nomor -->
         <nav class="card h-fit p-3 lg:sticky lg:top-20" aria-label="Daftar nomor soal">
             <p class="px-1 pb-2 text-xs font-bold uppercase tracking-wide text-ink-faint">Nomor ({{ position }}/{{ nav.length }})</p>
@@ -205,18 +205,18 @@ const position = computed(() => props.nav.findIndex((n) => n.number === props.it
                     </div>
                 </div>
 
-                <dl class="grid gap-2 border-b border-line bg-surface-2/50 px-6 py-3 text-xs sm:grid-cols-3">
+                <dl class="grid grid-cols-1 gap-2 border-b border-line bg-surface-2/50 px-6 py-3 text-xs sm:grid-cols-3">
                     <div><dt class="text-ink-faint">Waktu validasi terakhir</dt><dd class="font-semibold text-ink">{{ formatDateTime(item.reviewed_at) }}</dd></div>
                     <div><dt class="text-ink-faint">Waktu unggah ulang</dt><dd class="font-semibold text-ink">{{ formatDateTime(item.resubmitted_at) }}</dd></div>
                     <div><dt class="text-ink-faint">Pembaruan guru</dt><dd class="font-semibold text-ink">{{ item.revisions.length ? item.revisions[item.revisions.length - 1].uploader : '—' }}</dd></div>
                 </dl>
 
-                <div class="grid divide-y divide-line md:grid-cols-5 md:divide-x md:divide-y-0">
-                    <div class="p-6 md:col-span-2">
+                <div class="grid grid-cols-1 divide-y divide-line md:grid-cols-5 md:divide-x md:divide-y-0">
+                    <div class="min-w-0 p-6 md:col-span-2">
                         <h3 class="mb-3 text-xs font-bold uppercase tracking-wide text-ink-faint">Kisi-kisi</h3>
                         <ItemKisi :item="item" />
                     </div>
-                    <div class="p-6 md:col-span-3">
+                    <div class="min-w-0 p-6 md:col-span-3">
                         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <h3 class="text-xs font-bold uppercase tracking-wide text-ink-faint">Soal</h3>
                             <TranslateButton :item="item" />
@@ -237,7 +237,7 @@ const position = computed(() => props.nav.findIndex((n) => n.number === props.it
 
                 <fieldset class="mt-4" :disabled="!canDecide && !canReopen">
                     <legend class="label">Daftar periksa</legend>
-                    <div class="grid gap-2 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <label v-for="c in checklist_items" :key="c.key" class="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
                             <input v-model="form.checklist[c.key]" type="checkbox" class="size-4 accent-primary-600" /> {{ c.label }}
                         </label>

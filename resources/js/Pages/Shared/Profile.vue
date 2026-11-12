@@ -33,7 +33,7 @@ function savePassword(): void {
     <Head title="Profil" />
     <PageHeader title="Profil & keamanan" description="Kelola data akun dan kata sandi Anda." />
 
-    <div class="grid gap-6 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section class="card p-6">
             <h2 class="text-base font-bold text-ink">Data akun</h2>
             <form class="mt-5 space-y-4" @submit.prevent="saveInfo">
