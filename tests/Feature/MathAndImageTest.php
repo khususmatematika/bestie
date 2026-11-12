@@ -199,7 +199,7 @@ class MathAndImageTest extends TestCase
 
         $blocks = (new \App\Services\Documents\DocxStructureReader)->read($path);
         $this->assertStringContainsString('⟦rb:老|lǎo⟧⟦rb:师|shī⟧：好！', $blocks[0]['text']);
-        $this->assertSame('老师 好', \App\Services\Similarity\ItemSimilarity::normalize('⟦rb:老|lǎo⟧⟦rb:师|shī⟧ 好'));
+        $this->assertSame('老 师 好', \App\Services\Similarity\ItemSimilarity::normalize('⟦rb:老|lǎo⟧⟦rb:师|shī⟧ 好'));
 
         @unlink($path);
     }

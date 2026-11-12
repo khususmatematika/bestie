@@ -37,6 +37,31 @@ class ArchiveSimilarityTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_shared_instruction_sentence_and_japanese_text_do_not_inflate_similarity(): void
+    {
+        $instruction = 'Manakah pernyataan berikut ini yang benar? (Pilih 2 jawaban benar)';
+        $score = static fn (string $a, string $b): float => ItemSimilarity::score(
+            ItemSimilarity::shingles(ItemSimilarity::normalize($a)),
+            ItemSimilarity::shingles(ItemSimilarity::normalize($a)),
+            $b,
+            $b,
+        );
+
+        // Kalimat perintah baku dibuang dari perbandingan.
+        $this->assertSame('', ItemSimilarity::normalize($instruction));
+
+        // Dua soal bahasa Jepang berbeda yang hanya sama pada kalimat perintah.
+        $kota = "これは　わたしの　まちです。 {$instruction} A. わたしのまちにカフェがあります。 B. わたしのまちにモスクがあります";
+        $asal = "どこからですか？ ⟦img:5⟧ {$instruction} A. しょごさんは　かんこくからです B. ピアさんは　マレーシアからです";
+        $this->assertLessThan(ItemSimilarity::MIN_SCORE, $score($kota, $asal));
+
+        // Dua soal Indonesia berbeda dengan kalimat perintah yang sama.
+        $this->assertLessThan(ItemSimilarity::MIN_SCORE, $score("Fotosintesis terjadi pada organel apa {$instruction} A. kloroplas", "Ibu kota Jawa Barat adalah {$instruction} A. Bandung"));
+
+        // Soal yang benar-benar sama tetap terdeteksi.
+        $this->assertSame(1.0, $score($kota, $kota));
+    }
+
     public function test_similarity_math_prefers_near_duplicates(): void
     {
         $a = 'Hitung luas lingkaran dengan jari-jari 7 cm. A. 154 B. 144 C. 124';

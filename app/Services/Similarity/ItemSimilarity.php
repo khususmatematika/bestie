@@ -27,6 +27,28 @@ final class ItemSimilarity
 
     private const TOP = 5;
 
+    /** Ambang bobot (satuan "shingle langka") agar kemiripan stem-saja dipercaya; di bawahnya dikurangi proporsional. */
+    private const MIN_STEM_MASS = 3.0;
+
+    /** Jumlah pembanding minimum agar bobot kelangkaan (IDF) dipakai. */
+    private const MIN_CORPUS_FOR_IDF = 20;
+
+    /**
+     * Kalimat perintah baku pada teks yang sudah dinormalisasi (huruf kecil, tanpa tanda baca).
+     *
+     * @var list<string>
+     */
+    private const BOILERPLATE = [
+        '/\bpilih (?:\d+|satu|dua|tiga|empat|lima) jawaban(?: yang)?(?: paling)? (?:benar|tepat)\b/u',
+        '/\bmanakah (?:di antara )?(?:pernyataan|jawaban|pilihan|kalimat|kesimpulan) (?:berikut|di bawah)(?: ini)? (?:yang )?(?:paling )?(?:benar|tepat|sesuai|salah)\b/u',
+        '/\bperhatikan (?:gambar|teks|tabel|bacaan|grafik|data|diagram|wacana|kutipan|puisi|cerita|dialog|iklan|denah|peta|percakapan)(?: berikut| di bawah)?(?: ini)?\b/u',
+        '/\bbacalah (?:teks|bacaan|kutipan|puisi|cerita|wacana|dialog|percakapan)(?: berikut| di bawah)?(?: ini)?(?: dengan (?:seksama|saksama|cermat|teliti))?\b/u',
+        '/\btentukan apakah pernyataan (?:berikut|di bawah)(?: ini)? benar atau salah\b/u',
+        '/\bpernyataan (?:berikut|di bawah)(?: ini)? yang (?:paling )?(?:benar|tepat) adalah\b/u',
+        '/\bjawaban yang (?:paling )?(?:tepat|benar) adalah\b/u',
+        '/\bberdasarkan (?:gambar|teks|tabel|bacaan|data|grafik|diagram|kutipan|dialog) (?:tersebut|di atas|berikut|di bawah)(?: ini)?\b/u',
+    ];
+
     /** Teks butir (soal + pilihan) yang dibandingkan. */
     public static function textOf(?string $stem, mixed $options): string
     {
@@ -50,6 +72,15 @@ final class ItemSimilarity
         $text = str_replace(['\\(', '\\)'], ' ', $text);
         $text = mb_strtolower($text);
         $text = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text) ?? $text;
+        // Huruf Jepang/Mandarin/Korea tidak dipisah spasi antarkata: tiap karakter menjadi satu token (n-gram karakter).
+        $text = preg_replace('/([\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{AC00}-\x{D7AF}])/u', ' $1 ', $text) ?? $text;
+        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+
+        // Kalimat perintah baku ("Manakah pernyataan berikut yang benar", "Pilih 2 jawaban benar", …) dimiliki ribuan soal
+        // berbeda; dibuang agar tidak dianggap kemiripan isi.
+        foreach (self::BOILERPLATE as $pattern) {
+            $text = preg_replace($pattern, ' ', $text) ?? $text;
+        }
 
         return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
     }
@@ -110,7 +141,7 @@ final class ItemSimilarity
     {
         $package->loadMissing('assessmentPeriod.semester.year');
 
-        return $this->rank($item, iterator_to_array($this->candidates($package), false));
+        return $this->rank($item, $this->prepare(iterator_to_array($this->candidates($package), false)));
     }
 
     /**
@@ -121,11 +152,11 @@ final class ItemSimilarity
     public function topForPackage(QuestionPackage $package): array
     {
         $package->loadMissing('assessmentPeriod.semester.year');
-        $candidates = iterator_to_array($this->candidates($package), false);
+        $prepared = $this->prepare(iterator_to_array($this->candidates($package), false));
         $result = [];
 
         foreach (QuestionItem::query()->where('package_id', $package->id)->get() as $item) {
-            $top = $this->rank($item, $candidates, 0.0)[0] ?? null;
+            $top = $this->rank($item, $prepared, 0.0)[0] ?? null;
             $result[$item->id] = $top === null ? null : ['score' => $top['score'], 'level' => $top['level'], 'label' => $top['label'], 'number' => $top['number']];
         }
 
@@ -133,10 +164,83 @@ final class ItemSimilarity
     }
 
     /**
-     * @param  list<array{source: string, label: string, number: int, type: string|null, stem: string, options: array<string, string>}>  $candidates
+     * Menghitung shingle tiap pembanding sekali dan frekuensi dokumen (df) tiap shingle. Shingle yang muncul di banyak
+     * soal (kalimat umum) mendapat bobot kecil; yang langka bobot besar. Bobot hanya dipakai bila pembanding cukup banyak.
+     *
+     * @param  list<array<string, mixed>>  $candidates
+     * @return array{candidates: list<array<string, mixed>>, df: array<string|int, int>|null, n: int}
+     */
+    private function prepare(array $candidates): array
+    {
+        $df = [];
+
+        foreach ($candidates as $i => $candidate) {
+            $full = self::shingles(self::normalize(self::textOf($candidate['stem'], $candidate['options'])));
+            $candidates[$i]['_full'] = $full;
+            $candidates[$i]['_stem'] = self::shingles(self::normalize((string) $candidate['stem']));
+
+            foreach (array_keys($full) as $shingle) {
+                $df[$shingle] = ($df[$shingle] ?? 0) + 1;
+            }
+        }
+
+        $n = count($candidates);
+
+        return ['candidates' => $candidates, 'df' => $n >= self::MIN_CORPUS_FOR_IDF ? $df : null, 'n' => $n];
+    }
+
+    /**
+     * Jaccard berbobot: [rasio, massa irisan]. Massa dalam satuan "shingle langka" (bobot 1 = tidak ada di pembanding mana pun).
+     *
+     * @param  array<string|int, true>  $a
+     * @param  array<string|int, true>  $b
+     * @param  array<string|int, int>|null  $df
+     * @return array{0: float, 1: float}
+     */
+    private static function weightedJaccard(array $a, array $b, ?array $df, int $n): array
+    {
+        if ($a === [] || $b === []) {
+            return [0.0, 0.0];
+        }
+
+        $max = log($n + 1);
+        $weight = static function (string|int $shingle) use ($df, $n, $max): float {
+            if ($df === null) {
+                return 1.0;
+            }
+
+            $w = max(0.02, log(($n + 1) / (($df[$shingle] ?? 0) + 1))) / $max;
+
+            return $w * $w;
+        };
+
+        $sumA = 0.0;
+        $sumB = 0.0;
+        $inter = 0.0;
+
+        foreach (array_keys($a) as $k) {
+            $w = $weight($k);
+            $sumA += $w;
+
+            if (isset($b[$k])) {
+                $inter += $w;
+            }
+        }
+
+        foreach (array_keys($b) as $k) {
+            $sumB += $weight($k);
+        }
+
+        $union = $sumA + $sumB - $inter;
+
+        return [$union <= 0.0 ? 0.0 : $inter / $union, $inter];
+    }
+
+    /**
+     * @param  array{candidates: list<array<string, mixed>>, df: array<string|int, int>|null, n: int}  $prepared
      * @return list<array{score: int, level: string, source: string, label: string, number: int, type: string|null, stem: string, options: array<string, string>}>
      */
-    private function rank(QuestionItem $item, array $candidates, float $min = self::MIN_SCORE): array
+    private function rank(QuestionItem $item, array $prepared, float $min = self::MIN_SCORE): array
     {
         $fullA = self::shingles(self::normalize(self::textOf($item->stem, $item->options)));
         $stemA = self::shingles(self::normalize((string) $item->stem));
@@ -145,10 +249,16 @@ final class ItemSimilarity
             return [];
         }
 
+        ['candidates' => $candidates, 'df' => $df, 'n' => $n] = $prepared;
         $matches = [];
 
         foreach ($candidates as $candidate) {
-            $score = self::score($fullA, $stemA, $candidate['stem'], self::textOf($candidate['stem'], $candidate['options']));
+            [$full] = self::weightedJaccard($fullA, $candidate['_full'], $df, $n);
+            [$stem, $stemMass] = self::weightedJaccard($stemA, $candidate['_stem'], $df, $n);
+
+            // Kemiripan stem-saja (pilihan diganti) hanya dipercaya bila stemnya cukup khas, bukan kalimat perintah umum.
+            $trust = $df === null ? 1.0 : min(1.0, $stemMass / self::MIN_STEM_MASS);
+            $score = max($full, $stem * 0.85 * $trust);
 
             if ($score >= $min) {
                 $matches[] = ['raw' => $score] + $candidate;

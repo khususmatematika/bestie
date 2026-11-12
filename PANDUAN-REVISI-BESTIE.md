@@ -403,3 +403,12 @@ Hapus nomor pada draft kini merapatkan seluruh nomor menjadi 1, 2, 3, … (celah
 ### Rapikan nomor pada paket yang sudah dikirim (admin)
 
 Guru hanya dapat merapikan nomor saat draft. Setelah dikirim/dalam validasi, admin merapikannya lewat ikon "Rapikan nomor" pada Monitoring Paket (muncul bila ada celah; tidak untuk draft/Fix/Terkunci). Hanya nomor yang berubah (31, 32, 36, 37 → 31, 32, 33, 34 bila diurutkan ulang dari awal); isi, riwayat revisi, dan telaah validator melekat pada butir sehingga ikut. Catatan validator yang menyebut nomor lama di dalam teksnya tidak diubah otomatis. Tercatat `package.renumbered_by_admin` beserta peta nomor.
+
+## Kemiripan soal: kalimat perintah baku & huruf Jepang/Mandarin
+
+Penyebab soal berbeda dianggap mirip: (1) kalimat perintah yang sama ("Manakah pernyataan berikut ini yang benar? (Pilih 2 jawaban benar)") ikut dihitung, dan (2) teks Jepang/Mandarin tanpa spasi dianggap satu "kata" sehingga yang tersisa hanya kalimat perintah itu. Perbaikan di `ItemSimilarity`:
+- Kalimat perintah baku (daftar `BOILERPLATE`) dibuang sebelum dibandingkan; tambahkan pola baru di sana bila ada kalimat lain yang sering muncul.
+- Huruf Jepang/Mandarin/Korea dipecah per karakter (n-gram karakter).
+- Bila pembanding ≥ 20 soal, potongan teks yang muncul di banyak soal diberi bobot kecil (IDF) dan kemiripan stem-saja dikurangi bila stemnya tidak khas.
+- Shingle pembanding dihitung sekali per permintaan (lebih cepat untuk rekap).
+Skor soal yang benar-benar sama tetap 100%.
