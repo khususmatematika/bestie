@@ -419,3 +419,14 @@ Penyebab (dibuktikan dengan render komponen asli di Chromium lebar 390 px): teks
 - Spasi tak-terputus diubah menjadi spasi biasa saat disimpan (`ItemContent::text`) dan saat ditampilkan (`MathText`); teks lama otomatis tampil benar tanpa unggah ulang.
 - Semua grid berbreakpoint kini memakai `grid-cols-1` (kolom `minmax(0,1fr)`), dan sel telaah diberi `min-w-0`, sehingga isi tidak lagi bisa melebarkan kolom.
 - `MathText` memakai `overflow-wrap:anywhere` untuk kata/URL panjang.
+
+## Daftar admin: baris per halaman & tata letak header
+
+- Mapel, Akun guru, dan Monitoring paket punya pilihan "Baris per halaman" (15, 30, 50, 100, Semua) di bawah tabel. "Semua" dibatasi 1.000 baris agar halaman ringan; pilihan tetap terbawa saat mencari/menyaring/pindah halaman (`per_page` pada URL, `App\Support\PerPage`). Komponen `Pagination` menerima prop `per-page-control`; daftar lain (arsip, log) belum memakainya.
+- Header halaman: tombol aksi kini sejajar di sebelah kanan pada desktop (sebelumnya "Impor Excel" turun ke atas "Tambah mapel"); tombol impor mapel memakai gaya yang sama dengan impor guru.
+
+## Daftar arsip, log aktivitas per pengguna, dan rekap validasi
+
+- **Daftar arsip** dan **Log aktivitas** kini memiliki pilihan "Baris per halaman" (15/30/50/100/Semua) seperti daftar admin lainnya.
+- **Log aktivitas per pengguna**: halaman awal hanya menampilkan daftar pengguna (nama, jumlah aktivitas, kejadian dan waktu terakhir) dengan pencarian nama. Klik nama pengguna untuk melihat seluruh aktivitasnya (tabel di laptop, kartu di HP; Rincian tampil penuh), lengkap dengan pencarian kejadian, baris per halaman, dan tombol "Semua pengguna" untuk kembali. Aksi tanpa pelaku dikelompokkan sebagai "Sistem".
+- **Rekap validasi** (DOCX & XLSX): kolom "Catatan" menjadi **"Riwayat catatan validator"** berisi seluruh riwayat telaah per nomor (urut, dengan waktu, keputusan, dan catatan), kolomnya diperlebar, dan kolom "Waktu upload ulang" dihapus. Rekap dibuat langsung dari data saat diunduh, sehingga berlaku untuk semua paket, baik yang sudah Fix maupun belum.

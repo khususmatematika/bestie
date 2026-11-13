@@ -17,6 +17,7 @@ use App\Models\QuestionPackage;
 use App\Models\Subject;
 use App\Models\User;
 use App\Support\CurrentPeriod;
+use App\Support\PerPage;
 use App\Support\PackagePresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,7 +54,7 @@ class PackageController extends Controller
                     ->orWhereHas('teacher', fn ($t) => $t->where('name', 'like', "%{$search}%")),
             ))
             ->latest('id')
-            ->paginate(15)
+            ->paginate(PerPage::resolve($request))
             ->withQueryString()
             ->through(function (QuestionPackage $p): array {
                 $row = QuestionItem::query()->where('package_id', $p->id)->toBase()->selectRaw('count(*) as c, max(number) as m')->first();

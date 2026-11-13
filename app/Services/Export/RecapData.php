@@ -34,7 +34,6 @@ final class RecapData
             $review = $item->reviews->sortBy('id')->last();
             $checked = $item->reviews->sortByDesc('id')->first(static fn ($r): bool => is_array($r->checklist) && $r->checklist !== []);
             $latest = $item->revisions->sortBy('version')->last();
-            $reuploaded = $latest !== null && $latest->version > 1 ? $latest->uploaded_at : null;
 
             $checks = [];
 
@@ -49,9 +48,8 @@ final class RecapData
                 'validator' => $review?->validator?->name,
                 'checks' => $checks,
                 'similarity' => isset($similar[$item->id]) ? $similar[$item->id]['score'] : null,
-                'note' => $review?->note ?? '—',
+                'note' => self::noteHistory($item),
                 'validated_at' => RecapRows::stamp($item->reviewed_at),
-                'reuploaded_at' => RecapRows::stamp($reuploaded),
                 'version' => $latest !== null ? 'v'.$latest->version : 'v1',
             ];
         })->values()->all();
@@ -78,6 +76,22 @@ final class RecapData
             'summary' => ['total' => $items->count(), 'approved' => $approved],
             'validator' => $package->validator?->name ?? '',
         ];
+    }
+
+    /**
+     * Riwayat telaah satu nomor, dari yang paling awal: "1) 12/11/2026 09:10 · Minta ganti — catatan". Setiap telaah
+     * (termasuk persetujuan tanpa catatan) satu baris, sehingga seluruh bolak-balik validator–guru tercetak.
+     */
+    public static function noteHistory(QuestionItem $item): string
+    {
+        $lines = [];
+
+        foreach ($item->reviews->sortBy('id')->values() as $i => $review) {
+            $note = trim((string) $review->note);
+            $lines[] = ($i + 1).') '.RecapRows::stamp($review->reviewed_at).' · '.$review->decision->label().($note !== '' ? ' — '.$note : '');
+        }
+
+        return $lines === [] ? '—' : implode("\n", $lines);
     }
 
     /** Tingkat sorotan skor kemiripan: tinggi (>= 70), sedang (>= 50), rendah. */

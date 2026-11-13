@@ -15,6 +15,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TeacherRequest;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\PerPage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,7 +41,7 @@ class TeacherController extends Controller
             ->when($filter === RoleName::Validator->value, fn ($q) => $q->role(RoleName::Validator->value))
             ->when($filter === 'inactive', fn ($q) => $q->where('is_active', false))
             ->orderBy('name')
-            ->paginate(15)
+            ->paginate(PerPage::resolve($request))
             ->withQueryString()
             ->through(fn (User $u): array => $this->present($u));
 

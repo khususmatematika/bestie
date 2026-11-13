@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\SubjectRequest;
 use App\Models\GradeLevel;
 use App\Models\Subject;
 use App\Support\ActivityLogger;
+use App\Support\PerPage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,7 +30,7 @@ class SubjectController extends Controller
                 fn ($w) => $w->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"),
             ))
             ->orderBy('name')
-            ->paginate(15)
+            ->paginate(PerPage::resolve($request))
             ->withQueryString()
             ->through(fn (Subject $s): array => [
                 'id' => $s->id,

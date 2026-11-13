@@ -7,6 +7,7 @@ import { formatDateTime } from '@/Composables/useFormat';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import FormField from '@/Components/ui/FormField.vue';
 import Modal from '@/Components/ui/Modal.vue';
+import { currentPerPage } from '@/Composables/perPage';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import Pagination from '@/Components/ui/Pagination.vue';
 import StatusBadge from '@/Components/ui/StatusBadge.vue';
@@ -56,7 +57,7 @@ const form = useForm<{
 const showPassword = ref(false);
 
 function reload(): void {
-    router.get('/admin/teachers', { search: search.value || undefined, role: role.value || undefined }, { preserveState: true, replace: true });
+    router.get('/admin/teachers', { search: search.value || undefined, role: role.value || undefined, per_page: currentPerPage() }, { preserveState: true, replace: true });
 }
 
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -186,7 +187,7 @@ async function remove(t: Teacher): Promise<void> {
             <template #icon><Users class="size-7" /></template>
             <Link v-if="!filters.search && !filters.role" href="/admin/teachers/import" class="btn-primary"><Upload class="size-4" /> Impor dari Excel</Link>
         </EmptyState>
-        <Pagination :meta="teachers" />
+        <Pagination :meta="teachers" per-page-control />
     </section>
 
     <Modal :open="open" :title="editing ? 'Ubah data guru' : 'Tambah guru'" :description="editing ? undefined : 'Kata sandi awal dibuat otomatis dan ditampilkan satu kali.'" @close="open = false">

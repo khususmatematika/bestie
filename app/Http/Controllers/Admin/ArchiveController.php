@@ -13,7 +13,9 @@ use App\Models\GradeLevel;
 use App\Models\QuestionItem;
 use App\Models\Subject;
 use App\Support\ActivityLogger;
+use App\Support\PerPage;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use InvalidArgumentException;
@@ -24,13 +26,14 @@ use Throwable;
  */
 class ArchiveController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         return Inertia::render('Admin/Archive/Index', [
             'imports' => ArchiveImport::query()
                 ->with(['subject:id,name', 'gradeLevel:id,name'])
                 ->latest('id')
-                ->paginate(15)
+                ->paginate(PerPage::resolve($request))
+                ->withQueryString()
                 ->through(static fn (ArchiveImport $i): array => [
                     'id' => $i->id,
                     'subject' => $i->subject->name,

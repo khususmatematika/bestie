@@ -142,7 +142,7 @@ async function remove(row: ImportRow): Promise<void> {
                 </li>
             </ul>
             <EmptyState v-else title="Belum ada arsip impor" description="Paket Fix semester lama tetap dipakai otomatis. Impor naskah lama untuk tahun sebelum BESTIE." />
-            <Pagination :meta="imports" />
+            <Pagination :meta="imports" per-page-control />
         </section>
     </div>
   </div>

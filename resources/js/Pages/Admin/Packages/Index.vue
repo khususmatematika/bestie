@@ -7,6 +7,7 @@ import { useConfirm } from '@/Composables/useConfirm';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import FormField from '@/Components/ui/FormField.vue';
 import Modal from '@/Components/ui/Modal.vue';
+import { currentPerPage } from '@/Composables/perPage';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import Pagination from '@/Components/ui/Pagination.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
@@ -67,7 +68,7 @@ function bulkUrl(kind: string): string {
 function apply(): void {
     router.get(
         '/admin/packages',
-        { status: status.value || undefined, subject_id: subjectId.value || undefined, search: search.value || undefined },
+        { status: status.value || undefined, subject_id: subjectId.value || undefined, search: search.value || undefined, per_page: currentPerPage() },
         { preserveState: true, replace: true },
     );
 }
@@ -208,7 +209,7 @@ function submitChange(): void {
         <EmptyState v-else title="Belum ada paket" description="Paket yang dibuat guru pada periode terpilih akan tampil di sini.">
             <template #icon><FolderOpen class="size-7" /></template>
         </EmptyState>
-        <Pagination :meta="packages" />
+        <Pagination :meta="packages" per-page-control />
     </section>
 
     <Modal :open="changing !== null" title="Ganti validator" :description="changing ? changing.title : undefined" size="sm" @close="changing = null">
