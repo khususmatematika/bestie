@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { vAutogrow } from '@/Composables/autogrow';
-import { splitKey } from '@/Composables/matchingKey';
+import { buildMatchingKey, parseMatchingKey, parseTrueFalseKey, splitKey, type TF } from '@/Composables/matchingKey';
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from '@lucide/vue';
+import { LoaderCircle, Plus, X } from '@lucide/vue';
 import FilePicker from '@/Components/ui/FilePicker.vue';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import MathText from '@/Components/package/MathText.vue';
 import FormField from '@/Components/ui/FormField.vue';
 import type { ItemDetail, TypeOption } from '@/types';
@@ -78,10 +78,7 @@ async function onPaste(e: ClipboardEvent, field: string): Promise<void> {
 
     const apply = (v: string): string => v.slice(0, start) + tokens + v.slice(end);
 
-    if (field === 'stem') form.stem = apply(form.stem);
-    else if (field === 'scoring_guide') form.scoring_guide = apply(form.scoring_guide);
-    else if (field === 'answer_key') form.answer_key = apply(form.answer_key);
-    else form.options[field] = apply(form.options[field] ?? '');
+    setField(field, apply(getField(field)));
 }
 
 /** Format teks: bungkus pilihan dengan <b>, <i>, atau <u> (Ctrl+B / Ctrl+I / Ctrl+U atau tombol di atas kolom). */
@@ -89,6 +86,8 @@ function getField(name: string): string {
     if (name === 'stem') return form.stem;
     if (name === 'scoring_guide') return form.scoring_guide;
     if (name === 'answer_key') return form.answer_key;
+    if (name.startsWith('ans:')) return pairAns[name.slice(4)] ?? '';
+    if (name.startsWith('dis:')) return distractors.value[Number(name.slice(4))] ?? '';
 
     return form.options[name] ?? '';
 }
@@ -97,6 +96,8 @@ function setField(name: string, value: string): void {
     if (name === 'stem') form.stem = value;
     else if (name === 'scoring_guide') form.scoring_guide = value;
     else if (name === 'answer_key') form.answer_key = value;
+    else if (name.startsWith('ans:')) pairAns[name.slice(4)] = value;
+    else if (name.startsWith('dis:')) distractors.value[Number(name.slice(4))] = value;
     else form.options[name] = value;
 }
 
@@ -220,6 +221,56 @@ const form = useForm({
     attachment: null as File | null,
 });
 
+// Menjodohkan & benar/salah: kunci disusun otomatis dari isian per baris (tidak perlu mengetik "A=...; B=...").
+const pairAns = reactive<Record<string, string>>({});
+const distractors = ref<string[]>([]);
+const tf = reactive<Record<string, TF>>({});
+const tfSingle = ref<TF>('');
+const rowsShown = ref(3);
+
+function loadKeyState(): void {
+    if (form.type === 'menjodohkan') {
+        const p = parseMatchingKey(form.answer_key);
+        for (const l of LETTERS) pairAns[l] = p.pairs[l] ?? '';
+        distractors.value = [...p.distractors];
+    } else if (form.type === 'benar_salah') {
+        const p = parseTrueFalseKey(form.answer_key);
+        for (const l of LETTERS) tf[l] = p.map[l] ?? '';
+        tfSingle.value = p.single;
+    }
+
+    let last = -1;
+    LETTERS.forEach((l, i) => {
+        if ((form.options[l] ?? '').trim() !== '' || (pairAns[l] ?? '').trim() !== '') last = i;
+    });
+    rowsShown.value = Math.min(LETTERS.length, Math.max(3, last + 2));
+}
+
+loadKeyState();
+watch(() => form.type, loadKeyState);
+watch([pairAns, distractors], () => {
+    if (form.type === 'menjodohkan') form.answer_key = buildMatchingKey({ ...pairAns }, distractors.value);
+}, { deep: true });
+
+const tfHasStatements = computed(() => LETTERS.some((l) => (form.options[l] ?? '').trim() !== ''));
+
+function syncTf(): void {
+    if (form.type !== 'benar_salah') return;
+    form.answer_key = tfHasStatements.value
+        ? LETTERS.filter((l) => (form.options[l] ?? '').trim() !== '' && tf[l]).map((l) => `${l}=${tf[l]}`).join('; ')
+        : tfSingle.value;
+}
+
+watch([tf, tfSingle, () => form.options], syncTf, { deep: true });
+
+function addDistractor(): void {
+    distractors.value.push('');
+}
+
+function removeDistractor(i: number): void {
+    distractors.value.splice(i, 1);
+}
+
 const matching = computed(() => {
     if (form.type !== 'menjodohkan') return null;
     const pairs = new Set<string>();
@@ -318,7 +369,7 @@ function submit(): void {
                 <button v-for="t in MATH_TOOLS" :key="t.title" type="button" class="btn-secondary min-w-9 px-2 py-1 text-sm" :title="t.title" @mousedown.prevent @click="insertMath(t.tex)">{{ t.label }}</button>
                 <p class="w-full text-xs text-ink-faint">Klik kolom yang ingin diisi, lalu pilih simbol; rumus ditulis di antara \( dan \) dan tampil pada pratinjau. Rumus dari Word (Equation) otomatis terbaca.</p>
             </div>
-            <FormField v-slot="{ id, invalid }" label="Teks soal" :error="form.errors.stem" hint="Gambar: salin (Ctrl+V) lalu tempel langsung di kolom ini, termasuk pada pilihan jawaban, pernyataan menjodohkan, dan kunci/pengecoh. Tebal/miring/garis bawah: blok teks lalu Ctrl+B / I / U. Rumus ditulis di antara \\( dan \\) dengan sintaks LaTeX, mis. \\(\\frac{15}{56}\\). Penanda ⟦(?:img|rb):…⟧ adalah gambar; hapus penanda untuk membuang gambar dari teks." required>
+            <FormField v-slot="{ id, invalid }" :label="form.type === 'menjodohkan' ? 'Stimulus / petunjuk soal' : 'Teks soal'" :error="form.errors.stem" hint="Gambar: salin (Ctrl+V) lalu tempel langsung di kolom ini, termasuk pada pilihan jawaban, pernyataan menjodohkan, dan kunci/pengecoh. Tebal/miring/garis bawah: blok teks lalu Ctrl+B / I / U. Rumus ditulis di antara \\( dan \\) dengan sintaks LaTeX, mis. \\(\\frac{15}{56}\\). Penanda ⟦(?:img|rb):…⟧ adalah gambar; hapus penanda untuk membuang gambar dari teks." required>
                 <textarea :id="id" v-model="form.stem" v-autogrow data-fmt="stem" rows="5" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'stem')" />
             </FormField>
             <div v-if="/\\\(|⟦(?:img|rb):|<(?:b|i|u|sub|sup)>/.test(form.stem)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3">
@@ -326,8 +377,9 @@ function submit(): void {
                 <p class="mt-1 font-serif text-ink"><MathText :text="form.stem" :images="imageMap" /></p>
             </div>
 
-            <div v-if="hasOptions || form.type === 'benar_salah'" class="space-y-2">
-                <p class="label">{{ form.type === 'benar_salah' ? 'Pernyataan (opsional, bila ada beberapa pernyataan Benar/Salah)' : form.type === 'menjodohkan' ? 'Pernyataan' : 'Pilihan jawaban' }}</p>
+            <!-- Pilihan ganda / PG kompleks: satu kotak per pilihan -->
+            <div v-if="hasOptions && form.type !== 'menjodohkan'" class="space-y-2">
+                <p class="label">Pilihan jawaban</p>
                 <div v-for="letter in LETTERS" :key="letter" class="flex items-start gap-2">
                     <span class="w-6 pt-2.5 text-center text-sm font-bold text-primary-700 dark:text-primary-300">{{ letter }}</span>
                     <textarea v-model="form.options[letter]" v-autogrow :data-fmt="letter" rows="1" class="input min-w-0 flex-1 font-serif" :aria-label="`Pilihan ${letter}`" @paste="onPaste($event, letter)" />
@@ -340,18 +392,71 @@ function submit(): void {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField v-slot="{ id, invalid }" :label="hasOptions ? 'Kunci jawaban' : 'Kunci / jawaban singkat'" :error="form.errors.answer_key" :hint="keyHint" :required="hasOptions">
-                    <textarea v-if="form.type === 'menjodohkan'" :id="id" v-model="form.answer_key" v-autogrow data-fmt="answer_key" rows="3" class="input font-serif" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'answer_key')" />
-                    <textarea v-else :id="id" v-model="form.answer_key" v-autogrow rows="1" class="input" :class="{ 'input-error': invalid }" />
-                </FormField>
-                <div v-if="form.type === 'menjodohkan' && /⟦(?:img|rb):|<(?:b|i|u|sub|sup)>/.test(form.answer_key)" class="rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink sm:col-span-2">
-                    <MathText :text="form.answer_key" :images="imageMap" />
+            <!-- Benar/Salah: tiap pernyataan punya kotak sendiri dan tombol Benar / Salah -->
+            <div v-else-if="form.type === 'benar_salah'" class="space-y-3">
+                <p class="label">Pernyataan <span class="font-normal text-ink-faint">(opsional — kosongkan bila soal hanya satu pernyataan)</span></p>
+                <div v-for="(letter, i) in LETTERS.slice(0, rowsShown)" :key="letter" class="rounded-xl border border-line bg-surface p-3">
+                    <div class="flex items-start gap-2">
+                        <span class="mt-2 grid size-6 shrink-0 place-items-center rounded-full bg-primary-50 text-xs font-bold text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">{{ i + 1 }}</span>
+                        <textarea v-model="form.options[letter]" v-autogrow :data-fmt="letter" rows="1" class="input min-w-0 flex-1 font-serif" :aria-label="`Pernyataan ${i + 1}`" placeholder="Tulis pernyataan…" @paste="onPaste($event, letter)" />
+                    </div>
+                    <div v-if="(form.options[letter] ?? '').trim() !== ''" class="mt-2 flex items-center gap-2 pl-8" role="group" :aria-label="`Kunci pernyataan ${i + 1}`">
+                        <span class="text-xs font-semibold text-ink-soft">Kunci:</span>
+                        <button type="button" class="btn-sm rounded-lg border px-3 py-1 text-sm font-semibold" :class="tf[letter] === 'B' ? 'border-success-700 bg-success-700 text-white' : 'border-line bg-surface text-ink-soft hover:bg-surface-2'" :aria-pressed="tf[letter] === 'B'" @click="tf[letter] = 'B'">Benar</button>
+                        <button type="button" class="btn-sm rounded-lg border px-3 py-1 text-sm font-semibold" :class="tf[letter] === 'S' ? 'border-danger-700 bg-danger-700 text-white' : 'border-line bg-surface text-ink-soft hover:bg-surface-2'" :aria-pressed="tf[letter] === 'S'" @click="tf[letter] = 'S'">Salah</button>
+                    </div>
                 </div>
-                <p v-if="matching" class="self-end rounded-xl px-3 py-2 text-xs font-semibold" :class="matching.choices > matching.statements ? 'bg-success-50 text-success-700 dark:bg-success-500/10' : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10'" role="status">
-                    {{ matching.statements }} pernyataan · {{ matching.choices }} pilihan jawaban<template v-if="matching.choices <= matching.statements"> — tambahkan minimal 1 pengecoh agar pilihan lebih banyak daripada pernyataan.</template>
+                <button v-if="rowsShown < LETTERS.length" type="button" class="btn-secondary btn-sm" @click="rowsShown++"><Plus class="size-4" /> Tambah pernyataan</button>
+                <div v-if="!tfHasStatements" class="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface-2 p-3" role="group" aria-label="Kunci jawaban">
+                    <span class="text-sm font-semibold text-ink">Kunci jawaban:</span>
+                    <button type="button" class="rounded-lg border px-4 py-1.5 text-sm font-semibold" :class="tfSingle === 'B' ? 'border-success-700 bg-success-700 text-white' : 'border-line bg-surface text-ink-soft hover:bg-surface-2'" :aria-pressed="tfSingle === 'B'" @click="tfSingle = 'B'">Benar</button>
+                    <button type="button" class="rounded-lg border px-4 py-1.5 text-sm font-semibold" :class="tfSingle === 'S' ? 'border-danger-700 bg-danger-700 text-white' : 'border-line bg-surface text-ink-soft hover:bg-surface-2'" :aria-pressed="tfSingle === 'S'" @click="tfSingle = 'S'">Salah</button>
+                </div>
+                <p v-if="form.errors.options" class="error-text" role="alert">{{ form.errors.options }}</p>
+                <p v-if="form.errors.answer_key" class="error-text" role="alert">{{ form.errors.answer_key }}</p>
+            </div>
+
+            <!-- Menjodohkan: stimulus di atas, lalu pertanyaan 1 → jawaban 1 → pertanyaan 2 → jawaban 2 …, masing-masing punya kotak sendiri -->
+            <div v-else-if="form.type === 'menjodohkan'" class="space-y-3">
+                <p class="label">Pasangan pertanyaan dan jawaban</p>
+                <div v-for="(letter, i) in LETTERS.slice(0, rowsShown)" :key="letter" class="space-y-2 rounded-xl border border-line bg-surface p-3">
+                    <label class="block">
+                        <span class="mb-1 flex items-center gap-1.5 text-xs font-bold text-primary-700 dark:text-primary-300"><span class="grid size-5 place-items-center rounded-full bg-primary-50 text-[11px] dark:bg-primary-500/15">{{ i + 1 }}</span> Pertanyaan {{ i + 1 }}</span>
+                        <textarea v-model="form.options[letter]" v-autogrow :data-fmt="letter" rows="1" class="input font-serif" :aria-label="`Pertanyaan ${i + 1}`" @paste="onPaste($event, letter)" />
+                    </label>
+                    <label class="block">
+                        <span class="mb-1 flex items-center gap-1.5 text-xs font-bold text-success-700"><span class="grid size-5 place-items-center rounded-full bg-success-50 text-[11px] dark:bg-success-500/10">{{ i + 1 }}</span> Jawaban {{ i + 1 }}</span>
+                        <textarea v-model="pairAns[letter]" v-autogrow :data-fmt="`ans:${letter}`" rows="1" class="input font-serif" :aria-label="`Jawaban ${i + 1}`" @paste="onPaste($event, `ans:${letter}`)" />
+                    </label>
+                </div>
+                <button v-if="rowsShown < LETTERS.length" type="button" class="btn-secondary btn-sm" @click="rowsShown++"><Plus class="size-4" /> Tambah pasangan</button>
+
+                <div class="space-y-2 rounded-xl border border-dashed border-line bg-surface-2 p-3">
+                    <p class="text-xs font-bold text-ink-soft">Pengecoh <span class="font-normal text-ink-faint">(jawaban tambahan yang tidak dipakai; minimal 1 agar pilihan lebih banyak daripada pertanyaan)</span></p>
+                    <div v-for="(_, i) in distractors" :key="i" class="flex items-start gap-2">
+                        <textarea v-model="distractors[i]" v-autogrow :data-fmt="`dis:${i}`" rows="1" class="input min-w-0 flex-1 font-serif" :aria-label="`Pengecoh ${i + 1}`" @paste="onPaste($event, `dis:${i}`)" />
+                        <button type="button" class="btn-secondary btn-sm mt-1" :aria-label="`Hapus pengecoh ${i + 1}`" @click="removeDistractor(i)"><X class="size-4" /></button>
+                    </div>
+                    <button type="button" class="btn-secondary btn-sm" @click="addDistractor"><Plus class="size-4" /> Tambah pengecoh</button>
+                </div>
+
+                <p v-if="form.errors.options" class="error-text" role="alert">{{ form.errors.options }}</p>
+                <p v-if="form.errors.answer_key" class="error-text" role="alert">{{ form.errors.answer_key }}</p>
+                <div v-if="LETTERS.some((l) => /⟦(?:img|rb):|<(?:b|i|u|sub|sup)>|\\\(/.test((form.options[l] ?? '') + (pairAns[l] ?? '')))" class="space-y-1 rounded-xl border border-dashed border-line bg-surface-2 p-3 text-sm text-ink">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Pratinjau</p>
+                    <template v-for="(letter, i) in LETTERS.slice(0, rowsShown)" :key="letter">
+                        <p v-if="(form.options[letter] ?? '') !== '' || (pairAns[letter] ?? '') !== ''" class="font-serif"><b class="mr-1 font-sans">{{ i + 1 }}.</b><MathText :text="form.options[letter] ?? ''" :images="imageMap" /> <span class="text-ink-faint">→</span> <MathText :text="pairAns[letter] ?? ''" :images="imageMap" /></p>
+                    </template>
+                </div>
+                <p v-if="matching" class="rounded-xl px-3 py-2 text-xs font-semibold" :class="matching.choices > matching.statements ? 'bg-success-50 text-success-700 dark:bg-success-500/10' : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10'" role="status">
+                    {{ matching.statements }} pertanyaan · {{ matching.choices }} pilihan jawaban<template v-if="matching.choices <= matching.statements"> — tambahkan minimal 1 pengecoh agar pilihan lebih banyak daripada pertanyaan.</template>
                 </p>
             </div>
+
+            <!-- Kunci untuk bentuk lain (benar/salah & menjodohkan disusun otomatis di atas) -->
+            <FormField v-if="form.type !== 'benar_salah' && form.type !== 'menjodohkan'" v-slot="{ id, invalid }" :label="hasOptions ? 'Kunci jawaban' : 'Kunci / jawaban singkat'" :error="form.errors.answer_key" :hint="keyHint" :required="hasOptions">
+                <textarea :id="id" v-model="form.answer_key" v-autogrow rows="1" class="input" :class="{ 'input-error': invalid }" />
+            </FormField>
             <FormField v-slot="{ id, invalid }" label="Pedoman penskoran" :error="form.errors.scoring_guide" :hint="hasOptions ? 'Opsional untuk pilihan ganda.' : 'Wajib untuk uraian/isian bila kunci kosong.'">
                 <textarea :id="id" v-model="form.scoring_guide" v-autogrow data-fmt="scoring_guide" rows="3" class="input" :class="{ 'input-error': invalid }" @paste="onPaste($event, 'scoring_guide')" />
             </FormField>

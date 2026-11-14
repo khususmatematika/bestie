@@ -36,7 +36,7 @@ final class RecapWorkbook
         $sheet->setShowGridlines(false);
 
         // Lebar kolom: No, Bentuk, Status, 10 daftar periksa, Kemiripan, Riwayat catatan, Waktu validasi, Versi.
-        $widths = ['A' => 5, 'B' => 14, 'C' => 15] + array_fill_keys(range('D', 'M'), 6.2) + ['N' => 12, 'O' => 70, 'P' => 16, 'Q' => 7];
+        $widths = ['A' => 5, 'B' => 14, 'C' => 15] + array_fill_keys(range('D', 'M'), 6.2) + ['N' => 12, 'O' => 62, 'P' => 20, 'Q' => 7];
 
         foreach ($widths as $col => $w) {
             $sheet->getColumnDimension($col)->setWidth($w);
@@ -158,7 +158,8 @@ final class RecapWorkbook
         $body->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $sheet->getStyle("A{$first}:A{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle("D{$first}:N{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("P{$first}:Q{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("Q{$first}:Q{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("P{$first}:P{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
         $sheet->getStyle("A{$first}:".self::LAST."{$last}")->getFont()->setSize(9);
 
         // Keterangan.

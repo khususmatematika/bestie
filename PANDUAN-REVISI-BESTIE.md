@@ -430,3 +430,10 @@ Penyebab (dibuktikan dengan render komponen asli di Chromium lebar 390 px): teks
 - **Daftar arsip** dan **Log aktivitas** kini memiliki pilihan "Baris per halaman" (15/30/50/100/Semua) seperti daftar admin lainnya.
 - **Log aktivitas per pengguna**: halaman awal hanya menampilkan daftar pengguna (nama, jumlah aktivitas, kejadian dan waktu terakhir) dengan pencarian nama. Klik nama pengguna untuk melihat seluruh aktivitasnya (tabel di laptop, kartu di HP; Rincian tampil penuh), lengkap dengan pencarian kejadian, baris per halaman, dan tombol "Semua pengguna" untuk kembali. Aksi tanpa pelaku dikelompokkan sebagai "Sistem".
 - **Rekap validasi** (DOCX & XLSX): kolom "Catatan" menjadi **"Riwayat catatan validator"** berisi seluruh riwayat telaah per nomor (urut, dengan waktu, keputusan, dan catatan), kolomnya diperlebar, dan kolom "Waktu upload ulang" dihapus. Rekap dibuat langsung dari data saat diunduh, sehingga berlaku untuk semua paket, baik yang sudah Fix maupun belum.
+
+## Editor Benar/Salah & Menjodohkan, naskah Fix, rekap
+
+- **Menjodohkan (akun guru)**: urutan isian kini Stimulus → Pertanyaan 1 → Jawaban 1 → Pertanyaan 2 → Jawaban 2 … (maks. 5 pasangan, tombol "Tambah pasangan"); tiap pertanyaan dan jawaban punya kotak sendiri (menyesuaikan tinggi isi, bisa tempel gambar/format). Pengecoh punya kotak sendiri dengan tombol tambah/hapus. Kunci ("A=…; B=…" + "Pengecoh: …") disusun otomatis, tidak perlu diketik.
+- **Benar/Salah**: tiap pernyataan berada dalam kartu sendiri dengan tombol Benar / Salah; kunci disusun otomatis. Bila tidak ada pernyataan, cukup pilih Benar atau Salah.
+- **Naskah soal (DOCX)**: baris yang diakhiri pindah-baris manual (mis. dialog "Sofia : ...") tidak lagi direnggangkan oleh perataan kiri-kanan, jadi spasi antarkata tidak melebar (pengaturan `doNotExpandShiftReturn` pada settings.xml).
+- **Rekap validasi**: "Riwayat catatan validator" kini hanya berisi keputusan + catatan bernomor (1), 2), …); waktu tiap telaah ada di kolom "Waktu validasi" dengan nomor yang sama.

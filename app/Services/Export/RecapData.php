@@ -49,7 +49,7 @@ final class RecapData
                 'checks' => $checks,
                 'similarity' => isset($similar[$item->id]) ? $similar[$item->id]['score'] : null,
                 'note' => self::noteHistory($item),
-                'validated_at' => RecapRows::stamp($item->reviewed_at),
+                'validated_at' => self::validationTimes($item),
                 'version' => $latest !== null ? 'v'.$latest->version : 'v1',
             ];
         })->values()->all();
@@ -78,8 +78,20 @@ final class RecapData
         ];
     }
 
+    /** Waktu tiap telaah, bernomor sama dengan riwayat catatan (1), 2), ...). */
+    public static function validationTimes(QuestionItem $item): string
+    {
+        $reviews = $item->reviews->sortBy('id')->values();
+
+        if ($reviews->isEmpty()) {
+            return RecapRows::stamp($item->reviewed_at);
+        }
+
+        return $reviews->map(fn ($review, int $i): string => ($i + 1).') '.RecapRows::stamp($review->reviewed_at))->implode("\n");
+    }
+
     /**
-     * Riwayat telaah satu nomor, dari yang paling awal: "1) 12/11/2026 09:10 · Minta ganti — catatan". Setiap telaah
+     * Riwayat telaah satu nomor, dari yang paling awal: "1) Minta ganti — catatan" (waktunya ada di kolom Waktu validasi dengan nomor yang sama). Setiap telaah
      * (termasuk persetujuan tanpa catatan) satu baris, sehingga seluruh bolak-balik validator–guru tercetak.
      */
     public static function noteHistory(QuestionItem $item): string
@@ -88,7 +100,7 @@ final class RecapData
 
         foreach ($item->reviews->sortBy('id')->values() as $i => $review) {
             $note = trim((string) $review->note);
-            $lines[] = ($i + 1).') '.RecapRows::stamp($review->reviewed_at).' · '.$review->decision->label().($note !== '' ? ' — '.$note : '');
+            $lines[] = ($i + 1).') '.$review->decision->label().($note !== '' ? ' — '.$note : '');
         }
 
         return $lines === [] ? '—' : implode("\n", $lines);

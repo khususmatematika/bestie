@@ -453,6 +453,7 @@ final class DocxBuilder
             .'<Default Extension="png" ContentType="image/png"/><Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="gif" ContentType="image/gif"/>'
             .'<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
             .'<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+            .'<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>'
             .'<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>'
             .'<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>'
             .($this->lists !== [] ? '<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>' : '')
@@ -466,6 +467,7 @@ final class DocxBuilder
         $zip->addFromString('word/_rels/document.xml.rels', $head
             .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
             .'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+            .'<Relationship Id="rIdSet" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>'
             .'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>'
             .'<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'
             .($this->lists !== [] ? '<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>' : '')
@@ -477,6 +479,10 @@ final class DocxBuilder
             .'<w:styles '.$ns.'><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="'.$font.'" w:hAnsi="'.$font.'" w:cs="'.$font.'"/>'
             .'<w:sz w:val="'.($this->sizePt * 2).'"/><w:szCs w:val="'.($this->sizePt * 2).'"/><w:lang w:val="id-ID"/></w:rPr></w:rPrDefault>'
             .'<w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>');
+
+        // Baris yang diakhiri pindah-baris manual (Shift+Enter) tidak direnggangkan pada paragraf rata kiri-kanan
+        // (mis. dialog "Sofia : Hallo, ..."), sehingga jarak antarkata tidak melebar.
+        $zip->addFromString('word/settings.xml', $head.'<w:settings '.$ns.'><w:compat><w:doNotExpandShiftReturn/></w:compat></w:settings>');
 
         $zip->addFromString('word/header1.xml', $head.'<w:hdr '.$ns.'><w:p><w:pPr><w:jc w:val="center"/></w:pPr>'
             .($this->headerText !== null && $this->headerText !== ''
