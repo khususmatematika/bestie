@@ -45,7 +45,7 @@ final class RecapSection
             $header[] = $head($short) + ['vertical' => true];
         }
 
-        array_push($header, $head('Kemiripan tertinggi'), $head('Riwayat catatan validator'), $head('Waktu validasi'), $head('Versi'));
+        array_push($header, $head('Kemiripan tertinggi'), $head('Tanggal, jam & catatan validator'), $head('Versi'));
 
         $table = [$header];
 
@@ -75,7 +75,6 @@ final class RecapSection
                 $row,
                 ['text' => $score === null ? '—' : $score.'%', 'bold' => true, 'align' => 'center', 'fill' => $fill, 'size' => 9],
                 ['text' => $r['note'], 'size' => 8],
-                ['text' => $r['validated_at'], 'size' => 8, 'align' => 'left'],
                 ['text' => $r['version'], 'align' => 'center', 'size' => 8],
             );
 
@@ -86,7 +85,7 @@ final class RecapSection
             $table[] = array_merge([['text' => 'Belum ada nomor pada paket ini.']], array_fill(0, count($header) - 1, ''));
         }
 
-        $doc->grid([3.5, 6, 6, ...array_fill(0, 10, 3.6), 6.5, 28, 10, 3.5], $table, 1);
+        $doc->grid([3.5, 6, 6, ...array_fill(0, 10, 3.6), 6.5, 38.5, 3.5], $table, 1);
 
         // Keterangan.
         $doc->paragraph('Keterangan', ['bold' => true, 'size' => 9, 'after' => 20]);

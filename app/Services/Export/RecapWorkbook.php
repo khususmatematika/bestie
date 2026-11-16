@@ -23,7 +23,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 final class RecapWorkbook
 {
-    private const LAST = 'Q'; // 3 + 10 + 1 + 3 kolom
+    private const LAST = 'P'; // 3 + 10 + 1 + 2 kolom
 
     public function build(QuestionPackage $package, string $path): void
     {
@@ -35,8 +35,8 @@ final class RecapWorkbook
         $sheet->setTitle('Rekap validasi');
         $sheet->setShowGridlines(false);
 
-        // Lebar kolom: No, Bentuk, Status, 10 daftar periksa, Kemiripan, Riwayat catatan, Waktu validasi, Versi.
-        $widths = ['A' => 5, 'B' => 14, 'C' => 15] + array_fill_keys(range('D', 'M'), 6.2) + ['N' => 12, 'O' => 62, 'P' => 20, 'Q' => 7];
+        // Lebar kolom: No, Bentuk, Status, 10 daftar periksa, Kemiripan, Tanggal-jam-catatan validator, Versi.
+        $widths = ['A' => 5, 'B' => 14, 'C' => 15] + array_fill_keys(range('D', 'M'), 6.2) + ['N' => 12, 'O' => 85, 'P' => 7];
 
         foreach ($widths as $col => $w) {
             $sheet->getColumnDimension($col)->setWidth($w);
@@ -97,7 +97,7 @@ final class RecapWorkbook
 
         // Tabel utama.
         $headerRow = $row;
-        $heads = ['No', 'Bentuk', 'Status', ...array_values(ReviewChecklist::SHORT), 'Kemiripan tertinggi', 'Riwayat catatan validator', 'Waktu validasi', 'Versi'];
+        $heads = ['No', 'Bentuk', 'Status', ...array_values(ReviewChecklist::SHORT), 'Kemiripan tertinggi', 'Tanggal, jam & catatan validator', 'Versi'];
 
         foreach ($heads as $i => $text) {
             $sheet->setCellValueExplicit([$i + 1, $row], $text, DataType::TYPE_STRING);
@@ -121,7 +121,7 @@ final class RecapWorkbook
             }
 
             $score = $r['similarity'];
-            array_push($values, $score === null ? '—' : $score.'%', $r['note'], $r['validated_at'], $r['version']);
+            array_push($values, $score === null ? '—' : $score.'%', $r['note'], $r['version']);
 
             foreach ($values as $i => $v) {
                 $sheet->setCellValueExplicit([$i + 1, $row], (string) $v, DataType::TYPE_STRING);
@@ -158,8 +158,8 @@ final class RecapWorkbook
         $body->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $sheet->getStyle("A{$first}:A{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle("D{$first}:N{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("Q{$first}:Q{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("P{$first}:P{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("P{$first}:P{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("O{$first}:O{$last}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
         $sheet->getStyle("A{$first}:".self::LAST."{$last}")->getFont()->setSize(9);
 
         // Keterangan.

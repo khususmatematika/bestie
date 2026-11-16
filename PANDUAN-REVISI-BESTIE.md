@@ -436,4 +436,11 @@ Penyebab (dibuktikan dengan render komponen asli di Chromium lebar 390 px): teks
 - **Menjodohkan (akun guru)**: urutan isian kini Stimulus → Pertanyaan 1 → Jawaban 1 → Pertanyaan 2 → Jawaban 2 … (maks. 5 pasangan, tombol "Tambah pasangan"); tiap pertanyaan dan jawaban punya kotak sendiri (menyesuaikan tinggi isi, bisa tempel gambar/format). Pengecoh punya kotak sendiri dengan tombol tambah/hapus. Kunci ("A=…; B=…" + "Pengecoh: …") disusun otomatis, tidak perlu diketik.
 - **Benar/Salah**: tiap pernyataan berada dalam kartu sendiri dengan tombol Benar / Salah; kunci disusun otomatis. Bila tidak ada pernyataan, cukup pilih Benar atau Salah.
 - **Naskah soal (DOCX)**: baris yang diakhiri pindah-baris manual (mis. dialog "Sofia : ...") tidak lagi direnggangkan oleh perataan kiri-kanan, jadi spasi antarkata tidak melebar (pengaturan `doNotExpandShiftReturn` pada settings.xml).
-- **Rekap validasi**: "Riwayat catatan validator" kini hanya berisi keputusan + catatan bernomor (1), 2), …); waktu tiap telaah ada di kolom "Waktu validasi" dengan nomor yang sama.
+- **Rekap validasi** (diperbarui): kolom "Waktu validasi" dan "Riwayat catatan validator" digabung menjadi satu kolom "Tanggal, jam & catatan validator", satu baris per telaah: `1) 12/11/2026, 09:10 — Minta ganti: catatan`.
+
+## Naskah CBT menjodohkan & lebar tabel kisi-kisi
+
+- **Naskah CBT (menjodohkan)**: daftar "Pilihan jawaban" kini berurutan sesuai pasangan (jawaban pernyataan A = no. 1, B = no. 2, dst.), lalu pengecoh di bawahnya, bukan diurutkan alfabet; memudahkan memasukkan soal ke CBT. Naskah soal biasa tetap tidak membocorkan urutan kunci.
+- **Kisi-kisi (naskah final)**: lebar tabel kini mengikuti lebar area teks kertas (lanskap/potret) sehingga memenuhi halaman; sebelumnya memakai lebar tetap. Berlaku juga untuk tabel lain di naskah (lembar kunci, identitas). Proporsi kolom kisi-kisi sedikit disesuaikan (kolom Bentuk Soal dilebarkan).
+
+- **Kisi-kisi (pengelompokan)**: baris dikelompokkan menurut Capaian Pembelajaran > Materi > Submateri, bukan menurut nomor soal. CP yang sama berurutan dan selnya digabung; di dalamnya materi yang sama digabung; di dalamnya submateri yang sama digabung. Nomor soal hanya mengurutkan di dalam kelompok, sehingga kolom "No. Soal" tidak harus berurutan.

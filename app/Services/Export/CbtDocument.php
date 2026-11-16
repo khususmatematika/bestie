@@ -150,7 +150,13 @@ final class CbtDocument
 
             $stem .= "\n\nPilihan jawaban:";
 
-            foreach ($parsed['choices'] as $i => $choice) {
+            // Urut sesuai pasangan (jawaban A, B, C, … lebih dulu, lalu pengecoh) agar nomor pilihan sejajar dengan huruf pernyataan
+            // dan mudah dimasukkan ke CBT; bukan diurutkan alfabet.
+            $byLetter = $parsed['pairs'];
+            ksort($byLetter);
+            $ordered = array_values(array_unique([...array_values($byLetter), ...$parsed['distractors']]));
+
+            foreach ($ordered as $i => $choice) {
                 $stem .= "\n".($i + 1).'. '.$choice;
             }
 

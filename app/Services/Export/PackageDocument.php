@@ -105,8 +105,6 @@ final class PackageDocument
                 ['Penyusun soal', $package->teacher->name.($package->teacher->nip ? ' (NIP. '.$package->teacher->nip.')' : '')],
             ], [22, 78], false);
             $doc->paragraph('', ['after' => 100]);
-            // Dikelompokkan menurut Capaian Pembelajaran > Materi > Submateri (urutan kemunculan pertama), lalu nomor soal,
-            // supaya sel yang sama dapat digabung menjadi satu baris seperti format kisi-kisi.
             $dash = static fn (mixed $v): string => trim((string) ($v ?? '')) === '' ? '—' : trim((string) $v);
             $order = static function (string $key) use ($items, $dash): array {
                 $seen = [];
@@ -120,6 +118,8 @@ final class PackageDocument
             $cpOrder = $order('cp');
             $materiOrder = $order('materi');
             $subOrder = $order('submateri');
+            // Dikelompokkan menurut Capaian Pembelajaran > Materi > Submateri (bukan menurut nomor soal): CP yang sama berurutan dan
+            // digabung, lalu materi yang sama di dalam CP itu, lalu submateri. Nomor soal hanya mengurutkan di dalam kelompok.
             $grouped = $items->sortBy(static fn (QuestionItem $i): array => [
                 $cpOrder[$dash($i->blueprint['cp'] ?? null)],
                 $materiOrder[$dash($i->blueprint['materi'] ?? null)],
@@ -138,7 +138,7 @@ final class PackageDocument
                     $dash($i->blueprint['level'] ?? null),
                     $i->type->label(),
                 ])->all()),
-                [4, 19, 11, 15, 29, 6, 8, 8],
+                [4, 18, 11, 14, 28, 7, 8, 10],
                 true,
                 [1, 2, 3],
             );

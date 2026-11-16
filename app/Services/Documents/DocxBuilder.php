@@ -178,14 +178,12 @@ final class DocxBuilder
     public function table(array $rows, array $widths, bool $header = true, array $mergeColumns = []): self
     {
         $merge = $this->verticalMerges($rows, $header, $mergeColumns);
-        $total = 9000;
-        $grid = '';
+        // Lebar tabel mengikuti lebar area teks kertas (potret maupun lanskap), bukan angka tetap.
+        $total = $this->contentWidth();
+        $cols = array_map(static fn ($w): int => (int) round($total * $w / 100), $widths);
+        $grid = implode('', array_map(static fn (int $c): string => '<w:gridCol w:w="'.$c.'"/>', $cols));
 
-        foreach ($widths as $w) {
-            $grid .= '<w:gridCol w:w="'.(int) round($total * $w / 100).'"/>';
-        }
-
-        $xml = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>'
+        $xml = '<w:tbl><w:tblPr><w:tblW w:w="'.array_sum($cols).'" w:type="dxa"/><w:tblBorders>'
             .implode('', array_map(static fn (string $s): string => "<w:{$s} w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"808080\"/>", ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']))
             .'</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>'.$grid.'</w:tblGrid>';
 
@@ -194,7 +192,7 @@ final class DocxBuilder
             $xml .= '<w:tr>'.($isHead ? '<w:trPr><w:tblHeader/></w:trPr>' : '');
 
             foreach ($row as $c => $cell) {
-                $w = (int) round($total * ($widths[$c] ?? 10) / 100);
+                $w = $cols[$c] ?? (int) round($total * 10 / 100);
                 $vm = $merge[$i][$c] ?? null;
                 $xml .= '<w:tc><w:tcPr><w:tcW w:w="'.$w.'" w:type="dxa"/>'
                     .($vm === 'restart' ? '<w:vMerge w:val="restart"/>' : ($vm === 'continue' ? '<w:vMerge/>' : ''))
