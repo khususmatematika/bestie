@@ -23,7 +23,7 @@ use App\Support\Settings;
 final class PackageDocument
 {
     /** Naikkan bila tata letak dokumen berubah agar naskah final lama dibuat ulang. */
-    public const LAYOUT_VERSION = 3;
+    public const LAYOUT_VERSION = 4;
 
     /** Sidik format dokumen saat ini: format Admin, nama sekolah, logo kop, dan versi tata letak. */
     public static function fingerprint(): string
