@@ -27,6 +27,15 @@ final class DownloadsPresenter
             ? PackageExport::query()->where('package_id', $package->id)->latest('id')->first()
             : null;
 
+        // Naskah yang dibuat dengan format/tata letak lama dibuat ulang otomatis agar unduhan selalu mengikuti format terbaru.
+        if ($export !== null && $export->status === ExportStatus::Ready && $export->format_hash !== PackageDocument::fingerprint()) {
+            try {
+                $export = app(RequestFinalExport::class)->handle($package);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         // Naskah yang macet "queued" (mis. antrian tidak berjalan) dibuat sekarang; DOCX hanya butuh beberapa detik.
         if ($export !== null && $export->status === ExportStatus::Queued) {
             try {

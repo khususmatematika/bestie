@@ -446,3 +446,10 @@ Penyebab (dibuktikan dengan render komponen asli di Chromium lebar 390 px): teks
 - **Kisi-kisi (pengelompokan)**: baris dikelompokkan menurut Capaian Pembelajaran > Materi > Submateri, bukan menurut nomor soal. CP yang sama berurutan dan selnya digabung; di dalamnya materi yang sama digabung; di dalamnya submateri yang sama digabung. Nomor soal hanya mengurutkan di dalam kelompok, sehingga kolom "No. Soal" tidak harus berurutan.
 
 - **Naskah final lama & rekap**: naskah final disimpan (cache) saat paket Fix, sehingga rekap di dalamnya bisa berbeda dengan "Rekap validasi siap cetak" yang dibuat baru tiap unduh. `PackageDocument::LAYOUT_VERSION` dinaikkan menjadi 4: naskah final lama otomatis dibuat ulang pada permintaan unduh berikutnya (kolom rekap gabungan, kisi-kisi selebar kertas, perataan baris dialog). Naikkan lagi angka ini setiap tata letak naskah berubah.
+
+## Urutan naskah final & pembuatan ulang otomatis
+
+- **Urutan unduhan final** kini: (1) Rekap validasi (dengan kop, lanskap), (2) Kisi-kisi (lanskap), (3) Naskah soal (potret, dengan kop dan identitas), (4) Lembar kunci jawaban. Bagian yang dimatikan pada pengaturan format (rekap/kisi-kisi/lembar kunci) dilewati. `DocxBuilder::startPortrait()` ditambahkan untuk kembali ke potret setelah bagian lanskap.
+- **Naskah final lama tidak lagi bertahan**: saat halaman paket dibuka dan format/tata letak naskah yang tersimpan sudah usang (`PackageDocument::LAYOUT_VERSION` dinaikkan ke 5), naskah final dibuat ulang otomatis (DownloadsPresenter), sehingga tombol unduh selalu memberi versi terbaru. Rekap di dalamnya identik dengan "Rekap validasi siap cetak".
+
+- **Teks soal bergaris-baru di naskah**: tiap baris pada teks soal (hasil Enter/Shift+Enter) kini menjadi paragraf tersendiri, sehingga baris terakhirnya tidak direnggangkan perataan kiri-kanan (mis. "adalah (–2, –5) dan (4, 7)."). Tidak lagi bergantung pada pengaturan Word. `LAYOUT_VERSION` naik ke 6 agar naskah final lama dibuat ulang.

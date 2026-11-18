@@ -85,6 +85,19 @@ final class DocxBuilder
         return $this;
     }
 
+    /** Kembali ke halaman potret setelah bagian lanskap (bagian lanskap sebelumnya tetap lanskap). */
+    public function startPortrait(): self
+    {
+        if (! $this->landscapeNow) {
+            return $this->pageBreak();
+        }
+
+        $this->body .= '<w:p><w:pPr>'.$this->sectPr(true).'</w:pPr></w:p>';
+        $this->landscapeNow = false;
+
+        return $this;
+    }
+
     private function sectPr(bool $landscape): string
     {
         $w = $this->twips($this->marginCm);

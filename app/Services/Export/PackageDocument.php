@@ -23,7 +23,7 @@ use App\Support\Settings;
 final class PackageDocument
 {
     /** Naikkan bila tata letak dokumen berubah agar naskah final lama dibuat ulang. */
-    public const LAYOUT_VERSION = 4;
+    public const LAYOUT_VERSION = 6;
 
     /** Sidik format dokumen saat ini: format Admin, nama sekolah, logo kop, dan versi tata letak. */
     public static function fingerprint(): string
@@ -64,40 +64,35 @@ final class PackageDocument
 
         $items = $items->values();
 
+        // Urutan naskah final: rekap validasi, kisi-kisi (keduanya lanskap), naskah soal, lalu kunci jawaban (potret).
+        $leadLandscape = $final && ($format['show_recap'] || $format['show_blueprint']);
+
         $doc = new DocxBuilder(
             $format['font'],
             $format['font_size'],
             $format['margin_cm'],
             $isFinished && $final ? null : 'BELUM FINAL',
             trim(($docNumber !== null ? $docNumber.' — ' : '').$format['footer_text'], ' —'),
+            $leadLandscape,
         );
 
-        $this->heading($doc, $package, $format, $final);
+        $lead = false;
 
-        $files = $this->imageFiles($items);
-
-        foreach ($items as $item) {
-            $this->item($doc, $item, ! $final, $files);
-        }
-
-        if ($items->isEmpty()) {
-            $doc->paragraph('Belum ada nomor yang disetujui pada paket ini.', ['italic' => true]);
-        }
-
-        if ($final && $format['show_key_sheet']) {
-            $doc->pageBreak()->paragraph('LEMBAR KUNCI JAWABAN & PEDOMAN PENSKORAN', ['bold' => true, 'align' => 'center', 'after' => 200]);
-            $doc->table(
-                array_merge([['No', 'Kunci / Pedoman penskoran', 'Bobot']], $items->map(fn (QuestionItem $i): array => [
-                    (string) $i->number,
-                    trim($this->keyText($i).($i->scoring_guide !== '' && $i->scoring_guide !== null ? "\n".$i->scoring_guide : '')) ?: '—',
-                    isset($i->blueprint['bobot']) ? (string) $i->blueprint['bobot'] : '—',
-                ])->all()),
-                [10, 75, 15],
-            );
+        if ($final && $format['show_recap']) {
+            KopHeader::apply($doc, $format);
+            RecapSection::render($doc, RecapData::build($package));
+            $lead = true;
         }
 
         if ($final && $format['show_blueprint']) {
-            $doc->startLandscape()->paragraph(mb_strtoupper('KISI-KISI SOAL '.$package->assessmentPeriod->name), ['bold' => true, 'align' => 'center', 'after' => 160]);
+            if ($lead) {
+                $doc->pageBreak();
+            } else {
+                KopHeader::apply($doc, $format);
+                $lead = true;
+            }
+
+            $doc->paragraph(mb_strtoupper('KISI-KISI SOAL '.$package->assessmentPeriod->name), ['bold' => true, 'align' => 'center', 'after' => 160]);
             $doc->table([
                 ['Mata pelajaran', $package->subject->name],
                 ['Kelas / Fase', $this->classPhase($package)],
@@ -153,9 +148,32 @@ final class PackageDocument
             }
         }
 
-        if ($final && $format['show_recap']) {
-            $doc->startLandscape();
-            RecapSection::render($doc, RecapData::build($package));
+        if ($leadLandscape) {
+            $doc->startPortrait();
+        }
+
+        $this->heading($doc, $package, $format, $final);
+
+        $files = $this->imageFiles($items);
+
+        foreach ($items as $item) {
+            $this->item($doc, $item, ! $final, $files);
+        }
+
+        if ($items->isEmpty()) {
+            $doc->paragraph('Belum ada nomor yang disetujui pada paket ini.', ['italic' => true]);
+        }
+
+        if ($final && $format['show_key_sheet']) {
+            $doc->pageBreak()->paragraph('LEMBAR KUNCI JAWABAN & PEDOMAN PENSKORAN', ['bold' => true, 'align' => 'center', 'after' => 200]);
+            $doc->table(
+                array_merge([['No', 'Kunci / Pedoman penskoran', 'Bobot']], $items->map(fn (QuestionItem $i): array => [
+                    (string) $i->number,
+                    trim($this->keyText($i).($i->scoring_guide !== '' && $i->scoring_guide !== null ? "\n".$i->scoring_guide : '')) ?: '—',
+                    isset($i->blueprint['bobot']) ? (string) $i->blueprint['bobot'] : '—',
+                ])->all()),
+                [10, 75, 15],
+            );
         }
 
         $doc->save($path);
@@ -244,6 +262,39 @@ final class PackageDocument
     }
 
     /**
+     * Pecah rangkaian run menjadi beberapa daftar run pada setiap "\n" di dalam teks (gambar/rumus tidak dipecah).
+     *
+     * @param  list<array<string, mixed>>  $runs
+     * @return list<list<array<string, mixed>>>
+     */
+    private static function splitLines(array $runs): array
+    {
+        $lines = [[]];
+
+        foreach ($runs as $run) {
+            if (! isset($run['text']) || isset($run['image']) || isset($run['math']) || isset($run['ruby'])) {
+                $lines[array_key_last($lines)][] = $run;
+
+                continue;
+            }
+
+            $parts = explode("\n", str_replace(["\r\n", "\r"], "\n", (string) $run['text']));
+
+            foreach ($parts as $i => $part) {
+                if ($i > 0) {
+                    $lines[] = [];
+                }
+
+                if ($part !== '') {
+                    $lines[array_key_last($lines)][] = ['text' => $part] + $run;
+                }
+            }
+        }
+
+        return $lines;
+    }
+
+    /**
      * @param  \Illuminate\Support\Collection<int, PackageFile>  $files
      */
     private function item(DocxBuilder $doc, QuestionItem $item, bool $withStamps, $files): void
@@ -259,7 +310,13 @@ final class PackageDocument
         };
 
         $stem = (string) $item->stem;
-        $doc->runs([['text' => $item->number.'. ', 'bold' => true], ...$doc->richRuns($stem, [], $loader)], ['align' => 'both', 'after' => 60]);
+        // Tiap baris teks soal (dipisah Enter/Shift+Enter) menjadi paragraf sendiri, sehingga baris terakhirnya tidak
+        // direnggangkan oleh perataan kiri-kanan di Word/LibreOffice (tidak bergantung pada pengaturan pindah-baris).
+        $paragraphs = self::splitLines([['text' => $item->number.'. ', 'bold' => true], ...$doc->richRuns($stem, [], $loader)]);
+
+        foreach ($paragraphs as $n => $runs) {
+            $doc->runs($runs, ['align' => 'both', 'after' => $n === array_key_last($paragraphs) ? 60 : 0]);
+        }
 
         // Gambar yang tidak dirujuk penanda pada teks ditempatkan di bawah soal.
         preg_match_all('/⟦img:(\d+)⟧/u', $stem.' '.implode(' ', array_filter((array) $item->options, 'is_string')).' '.(string) $item->answer_key, $used);
